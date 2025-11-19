@@ -15,7 +15,7 @@
       "**/*"
     ],
     "android": {
-      "package": "samuelstoeberl@gmail.com",
+      "package": "com.samuel.Decision_assistant",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
