@@ -1,157 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  Platform,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StatusBar } from 'expo-status-bar';
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState(0);
   const [decision, setDecision] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [allAnswers, setAllAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
-  const [showBreakdown, setShowBreakdown] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [completedDecisions, setCompletedDecisions] = useState([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [settings, setSettings] = useState({
+    notifications: true,
+    darkMode: false,
+    analytics: true,
+  });
 
-  // Load from AsyncStorage on mount
   useEffect(() => {
-    loadData();
+    loadAllData();
   }, []);
 
-  const loadData = async () => {
+  const loadAllData = () => {
     try {
-      const saved = await AsyncStorage.getItem('decisionData');
+      const savedDecisions = localStorage.getItem('completedDecisions');
+      if (savedDecisions) setCompletedDecisions(JSON.parse(savedDecisions));
+      const savedSettings = localStorage.getItem('appSettings');
+      if (savedSettings) setSettings(JSON.parse(savedSettings));
+      const saved = localStorage.getItem('decisionData');
       if (saved) {
         const data = JSON.parse(saved);
         if (data.decision && data.decision.trim().length >= 10) {
-          Alert.alert(
-            'Fortsetzen?',
-            'Möchtest du deine letzte Analyse fortsetzen?',
-            [
-              { text: 'Nein', style: 'cancel' },
-              {
-                text: 'Ja',
-                onPress: () => {
-                  setDecision(data.decision || '');
-                  setAllAnswers(data.answers || {});
-                  setCurrentStep(data.step || 0);
-                  setShowResults(data.showResults || false);
-                  setHasStarted(true);
-                },
-              },
-            ]
-          );
+          if (window.confirm('Möchtest du deine letzte Analyse fortsetzen?')) {
+            setDecision(data.decision || '');
+            setAllAnswers(data.answers || {});
+            setCurrentStep(data.step || 0);
+            setShowResults(data.showResults || false);
+            setHasStarted(true);
+          }
         }
       }
-    } catch (e) {
-      console.error('Error loading data:', e);
+    } catch (error) {
+      console.error('Load error:', error);
     }
   };
 
-  // Save to AsyncStorage whenever state changes
   useEffect(() => {
-    if (decision.trim().length >= 10) {
-      saveData();
-    }
+    if (decision.trim().length >= 10) saveData();
   }, [decision, allAnswers, currentStep, showResults]);
 
-  const saveData = async () => {
+  const saveData = () => {
     try {
-      await AsyncStorage.setItem(
-        'decisionData',
-        JSON.stringify({
-          decision,
-          answers: allAnswers,
-          step: currentStep,
-          showResults,
-        })
-      );
-    } catch (e) {
-      console.error('Error saving data:', e);
+      localStorage.setItem('decisionData', JSON.stringify({
+        decision, answers: allAnswers, step: currentStep, showResults,
+      }));
+    } catch (error) {
+      console.error('Save error:', error);
     }
   };
 
   const steps = [
-    {
-      title: 'Deine erste Intuition',
-      question: 'Was ist dein spontanes Bauchgefühl?',
-      options: ['Stark dafür', 'Eher dafür', 'Neutral', 'Eher dagegen', 'Stark dagegen'],
-      insight: 'Deine erste Intuition ist oft wertvoll, kann aber durch Emotionen verzerrt sein.',
-      weight: 2,
-    },
-    {
-      title: 'Was steht auf dem Spiel?',
-      question: 'Was könntest du verlieren? (Geld, Zeit, Beziehungen, Gesundheit, etc.)',
-      type: 'text',
-      minLength: 5,
-      insight: 'Wichtig ist zu verstehen, welches echte Risiko du trägst und was im schlimmsten Fall passieren könnte.',
-      followUp: 'Wie hoch schätzt du das Risiko ein?',
-      followUpOptions: ['Sehr niedrig - kaum Verlust', 'Niedrig - überschaubar', 'Mittel - spürbar', 'Hoch - schmerzhaft', 'Sehr hoch - existenziell'],
-      weight: 4,
-    },
-    {
-      title: 'Kannst du zurück?',
-      question: 'Wie leicht kannst du diese Entscheidung rückgängig machen?',
-      type: 'text',
-      minLength: 5,
-      insight: 'Entscheidungen, die sich leicht umkehren lassen, können schneller getroffen werden.',
-      followUp: 'Wie reversibel ist die Entscheidung?',
-      followUpOptions: ['Vollständig reversibel', 'Größtenteils reversibel', 'Teilweise reversibel', 'Kaum reversibel', 'Irreversibel'],
-      weight: 4,
-    },
-    {
-      title: 'Zeitperspektive',
-      question: 'Wie wirst du über diese Entscheidung denken?',
-      type: 'multitext',
-      fields: [
-        { key: '10min', label: 'In 10 Minuten', placeholder: 'Direkt nach der Entscheidung?', minLength: 5 },
-        { key: '10months', label: 'In 10 Monaten', placeholder: 'Mittelfristige Auswirkungen?', minLength: 5 },
-        { key: '10years', label: 'In 10 Jahren', placeholder: 'Langfristige Auswirkungen?', minLength: 5 },
-      ],
-      insight: 'Diese Perspektive hilft, kurzfristige Emotionen von langfristigen Konsequenzen zu trennen.',
-      followUp: 'Überwiegt der langfristige Nutzen?',
-      followUpOptions: ['Ja, eindeutig', 'Eher ja', 'Unentschieden', 'Eher nein', 'Nein, eindeutig nicht'],
-      weight: 4,
-    },
-    {
-      title: 'Äußere Einflüsse',
-      question: 'Gibt es Zahlen, Preise oder Meinungen, die deine Sicht stark beeinflussen?',
-      type: 'text',
-      minLength: 5,
-      insight: 'Wir werden oft unbewusst von Informationen beeinflusst, die wir zuerst gehört haben.',
-      followUp: 'Könntest du objektiver entscheiden, wenn du diese Einflüsse ignorierst?',
-      followUpOptions: ['Ja, definitiv', 'Wahrscheinlich ja', 'Unsicher', 'Wahrscheinlich nein', 'Nein, ist zentral'],
-      weight: 2,
-    },
-    {
-      title: 'Der Rat an einen Freund',
-      question: 'Was würdest du einem guten Freund in der gleichen Situation raten?',
-      type: 'text',
-      minLength: 5,
-      insight: 'Wenn wir anderen raten, sind wir oft objektiver und weniger emotional.',
-      followUp: 'Was würdest du dem Freund raten?',
-      followUpOptions: ['Klar dafür', 'Eher dafür', 'Abwarten/mehr Info', 'Eher dagegen', 'Klar dagegen'],
-      weight: 6,
-    },
+    { title: 'Deine erste Intuition', question: 'Was ist dein spontanes Bauchgefühl?', options: ['Stark dafür', 'Eher dafür', 'Neutral', 'Eher dagegen', 'Stark dagegen'], emoji: '🎯' },
+    { title: 'Was steht auf dem Spiel?', question: 'Was könntest du verlieren?', type: 'text', followUp: 'Wie hoch ist das Risiko?', followUpOptions: ['Sehr niedrig', 'Niedrig', 'Mittel', 'Hoch', 'Sehr hoch'], emoji: '⚖️' },
+    { title: 'Kannst du zurück?', question: 'Wie leicht kannst du diese Entscheidung rückgängig machen?', type: 'text', followUp: 'Wie reversibel?', followUpOptions: ['Vollständig', 'Größtenteils', 'Teilweise', 'Kaum', 'Irreversibel'], emoji: '↩️' },
+    { title: 'Zeitperspektive', question: 'Wie siehst du es langfristig?', type: 'text', followUp: 'Überwiegt der Nutzen?', followUpOptions: ['Ja eindeutig', 'Eher ja', 'Unentschieden', 'Eher nein', 'Nein'], emoji: '🔮' },
+    { title: 'Äußere Einflüsse', question: 'Was beeinflusst dich?', type: 'text', followUp: 'Kannst du objektiver sein?', followUpOptions: ['Ja definitiv', 'Wahrscheinlich', 'Unsicher', 'Eher nein', 'Nein'], emoji: '🎭' },
+    { title: 'Rat an einen Freund', question: 'Was würdest du einem Freund raten?', type: 'text', followUp: 'Deine Empfehlung?', followUpOptions: ['Klar dafür', 'Eher dafür', 'Abwarten', 'Eher dagegen', 'Klar dagegen'], emoji: '💭' },
   ];
 
   const updateAnswer = (key, value) => {
-    setAllAnswers((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setAllAnswers(prev => ({ ...prev, [key]: value }));
   };
 
   const handleOptionClick = (option) => {
     updateAnswer(`step${currentStep}_rating`, option);
-
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -160,697 +81,467 @@ export default function App() {
   };
 
   const calculateDecision = () => {
-    let score = 0;
-    let maxScore = 0;
-    const breakdown = [];
-
-    const intuition = allAnswers.step0_rating;
-    let intuitionScore = 0;
-    if (intuition === 'Stark dafür') intuitionScore = 2;
-    else if (intuition === 'Eher dafür') intuitionScore = 1;
-    else if (intuition === 'Eher dagegen') intuitionScore = -1;
-    else if (intuition === 'Stark dagegen') intuitionScore = -2;
-    score += intuitionScore;
-    maxScore += 2;
-    breakdown.push({ name: 'Intuition', score: intuitionScore, max: 2, weight: steps[0].weight });
-
-    const risk = allAnswers.step1_rating;
-    let riskScore = 0;
-    if (risk === 'Sehr niedrig - kaum Verlust') riskScore = 4;
-    else if (risk === 'Niedrig - überschaubar') riskScore = 2;
-    else if (risk === 'Mittel - spürbar') riskScore = 0;
-    else if (risk === 'Hoch - schmerzhaft') riskScore = -2;
-    else if (risk === 'Sehr hoch - existenziell') riskScore = -4;
-    score += riskScore;
-    maxScore += 4;
-    breakdown.push({ name: 'Risiko', score: riskScore, max: 4, weight: steps[1].weight });
-
-    const reversible = allAnswers.step2_rating;
-    let revScore = 0;
-    if (reversible === 'Vollständig reversibel') revScore = 4;
-    else if (reversible === 'Größtenteils reversibel') revScore = 3;
-    else if (reversible === 'Teilweise reversibel') revScore = 1;
-    else if (reversible === 'Kaum reversibel') revScore = -1;
-    else if (reversible === 'Irreversibel') revScore = -2;
-    score += revScore;
-    maxScore += 4;
-    breakdown.push({ name: 'Reversibilität', score: revScore, max: 4, weight: steps[2].weight });
-
-    const longterm = allAnswers.step3_rating;
-    let ltScore = 0;
-    if (longterm === 'Ja, eindeutig') ltScore = 4;
-    else if (longterm === 'Eher ja') ltScore = 2;
-    else if (longterm === 'Unentschieden') ltScore = 0;
-    else if (longterm === 'Eher nein') ltScore = -2;
-    else if (longterm === 'Nein, eindeutig nicht') ltScore = -4;
-    score += ltScore;
-    maxScore += 4;
-    breakdown.push({ name: 'Langfristig', score: ltScore, max: 4, weight: steps[3].weight });
-
-    const anchor = allAnswers.step4_rating;
-    let anchorScore = 0;
-    if (anchor === 'Ja, definitiv') anchorScore = 2;
-    else if (anchor === 'Wahrscheinlich ja') anchorScore = 1;
-    else if (anchor === 'Unsicher') anchorScore = 0;
-    else if (anchor === 'Wahrscheinlich nein') anchorScore = -1;
-    else if (anchor === 'Nein, ist zentral') anchorScore = -2;
-    score += anchorScore;
-    maxScore += 2;
-    breakdown.push({ name: 'Anker-Freiheit', score: anchorScore, max: 2, weight: steps[4].weight });
-
-    const outside = allAnswers.step5_rating;
-    let outScore = 0;
-    if (outside === 'Klar dafür') outScore = 6;
-    else if (outside === 'Eher dafür') outScore = 3;
-    else if (outside === 'Abwarten/mehr Info') outScore = 0;
-    else if (outside === 'Eher dagegen') outScore = -3;
-    else if (outside === 'Klar dagegen') outScore = -6;
-    score += outScore;
-    maxScore += 6;
-    breakdown.push({ name: 'Außenperspektive', score: outScore, max: 6, weight: steps[5].weight });
-
-    const percentage = ((score + maxScore) / (2 * maxScore)) * 100;
-
-    return {
-      score,
-      maxScore,
-      percentage: Math.round(percentage),
-      recommendation: percentage >= 55 ? 'JA' : percentage <= 45 ? 'NEIN' : 'UNENTSCHIEDEN',
-      breakdown,
+    const ratings = {
+      step0_rating: { 'Stark dafür': 2, 'Eher dafür': 1, 'Neutral': 0, 'Eher dagegen': -1, 'Stark dagegen': -2 },
+      step1_rating: { 'Sehr niedrig': 4, 'Niedrig': 2, 'Mittel': 0, 'Hoch': -2, 'Sehr hoch': -4 },
+      step2_rating: { 'Vollständig': 4, 'Größtenteils': 3, 'Teilweise': 1, 'Kaum': -1, 'Irreversibel': -2 },
+      step3_rating: { 'Ja eindeutig': 4, 'Eher ja': 2, 'Unentschieden': 0, 'Eher nein': -2, 'Nein': -4 },
+      step4_rating: { 'Ja definitiv': 2, 'Wahrscheinlich': 1, 'Unsicher': 0, 'Eher nein': -1, 'Nein': -2 },
+      step5_rating: { 'Klar dafür': 6, 'Eher dafür': 3, 'Abwarten': 0, 'Eher dagegen': -3, 'Klar dagegen': -6 },
     };
+    let score = 0;
+    Object.keys(ratings).forEach(key => {
+      const rating = allAnswers[key];
+      if (rating && ratings[key][rating] !== undefined) {
+        score += ratings[key][rating];
+      }
+    });
+    const percentage = Math.round(((score + 22) / 44) * 100);
+    const recommendation = percentage >= 55 ? 'JA' : percentage <= 45 ? 'NEIN' : 'UNENTSCHIEDEN';
+    return { percentage, recommendation };
   };
 
-  const reset = async () => {
+  const reset = () => {
+    const result = calculateDecision();
+    const newDecision = { id: Date.now(), date: new Date().toISOString(), decision, recommendation: result.recommendation, percentage: result.percentage };
+    const updated = [...completedDecisions, newDecision];
+    setCompletedDecisions(updated);
+    localStorage.setItem('completedDecisions', JSON.stringify(updated));
     setDecision('');
     setCurrentStep(0);
     setAllAnswers({});
     setShowResults(false);
-    setShowBreakdown(false);
     setHasStarted(false);
-    await AsyncStorage.removeItem('decisionData');
+    localStorage.removeItem('decisionData');
   };
 
-  const goToStep = (stepIndex) => {
-    setCurrentStep(stepIndex);
-    setShowResults(false);
+  const getCurrentStreak = () => {
+    if (completedDecisions.length === 0) return 0;
+    const dates = [...new Set(completedDecisions.map(d => new Date(d.date).toDateString()))].sort((a, b) => new Date(b) - new Date(a));
+    let streak = 0;
+    const today = new Date();
+    for (let i = 0; i < dates.length; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() - i);
+      if (dates.includes(checkDate.toDateString())) streak++;
+      else break;
+    }
+    return streak;
   };
+
+  const changeMonth = (dir) => {
+    if (dir === 'next') {
+      if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1); }
+      else setCurrentMonth(currentMonth + 1);
+    } else {
+      if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
+      else setCurrentMonth(currentMonth - 1);
+    }
+  };
+
+  const TabBar = () => (
+    <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/95 backdrop-blur-lg border-t border-neutral-200 flex shadow-[0_-2px_16px_rgba(0,0,0,0.06)]">
+      {[
+        { icon: '🧠', label: 'Assistent', index: 0 },
+        { icon: '📊', label: 'Tracker', index: 1 },
+        { icon: '👥', label: 'Teilen', index: 2 },
+        { icon: '⚙️', label: 'Settings', index: 3 },
+      ].map(tab => (
+        <button
+          key={tab.index}
+          className={`flex-1 flex flex-col items-center justify-center transition-all active:scale-95 ${
+            activeTab === tab.index ? 'text-blue-500' : 'text-neutral-400'
+          }`}
+          onClick={() => setActiveTab(tab.index)}
+        >
+          <span className={`text-2xl mb-1 transition-all ${activeTab === tab.index ? 'drop-shadow-[0_0_8px_rgba(79,128,255,0.4)]' : ''}`}>
+            {tab.icon}
+          </span>
+          <span className="text-xs font-medium">{tab.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+
+  if (activeTab === 1) {
+    const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+    const firstDayIndex = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Montag = 0, Sonntag = 6
+    const decisionDates = new Set(completedDecisions.map(d => new Date(d.date).toDateString()));
+    
+    // Leere Zellen am Anfang für korrekte Wochentag-Ausrichtung
+    const emptyDays = Array.from({ length: firstDayIndex }, (_, i) => ({ isEmpty: true, key: `empty-${i}` }));
+    
+    // Tage des Monats
+    const days = Array.from({ length: daysInMonth }, (_, i) => {
+      const date = new Date(currentYear, currentMonth, i + 1);
+      return { day: i + 1, hasDecision: decisionDates.has(date.toDateString()), isEmpty: false };
+    });
+    
+    const allDays = [...emptyDays, ...days];
+
+    return (
+      <div className="min-h-screen bg-neutral-50 pb-24">
+        <div className="max-w-2xl mx-auto p-6">
+          <div className="bg-gradient-to-br from-white to-neutral-50 rounded-3xl p-8 shadow-[0_4px_24px_rgba(0,0,0,0.08)] mb-6">
+            <h1 className="text-3xl font-bold text-neutral-800 mb-8">📊 Dein Fortschritt</h1>
+            <div className="grid grid-cols-2 gap-5 mb-8">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-6 text-center shadow-[0_2px_12px_rgba(79,128,255,0.1)]">
+                <div className="text-4xl font-bold text-blue-500 mb-2">{completedDecisions.length}</div>
+                <div className="text-sm text-neutral-600 font-medium">Entscheidungen</div>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-2xl p-6 text-center shadow-[0_2px_12px_rgba(70,191,122,0.1)]">
+                <div className="text-4xl font-bold text-green-500 mb-2">{getCurrentStreak()}</div>
+                <div className="text-sm text-neutral-600 font-medium">Tage Streak 🔥</div>
+              </div>
+            </div>
+            <div className="flex justify-between items-center mb-6">
+              <button onClick={() => changeMonth('prev')} className="px-5 py-3 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-all active:scale-95 font-semibold text-neutral-700">←</button>
+              <span className="font-bold text-lg text-neutral-800">{monthNames[currentMonth]} {currentYear}</span>
+              <button onClick={() => changeMonth('next')} className="px-5 py-3 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-all active:scale-95 font-semibold text-neutral-700">→</button>
+            </div>
+            <div className="grid grid-cols-7 gap-2 mb-3">
+              {weekDays.map(day => (
+                <div key={day} className="text-center text-xs font-bold text-neutral-400 pb-1">{day}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-2">
+              {allDays.map((d, idx) => (
+                d.isEmpty ? (
+                  <div key={d.key} className="aspect-square"></div>
+                ) : (
+                  <div
+                    key={d.day}
+                    className={`aspect-square flex items-center justify-center rounded-xl text-sm font-semibold transition-all hover:scale-105 cursor-pointer ${
+                      d.hasDecision ? 'bg-gradient-to-br from-green-400 to-green-500 text-white shadow-[0_2px_8px_rgba(70,191,122,0.3)]' : 'bg-neutral-100 text-neutral-400'
+                    }`}
+                  >
+                    {d.day}
+                  </div>
+                )
+              ))}
+            </div>
+          </div>
+        </div>
+        <TabBar />
+      </div>
+    );
+  }
+
+  if (activeTab === 2) {
+    return (
+      <div className="min-h-screen bg-neutral-50 pb-24">
+        <div className="max-w-2xl mx-auto p-6">
+          <div className="bg-gradient-to-br from-white to-neutral-50 rounded-3xl p-8 shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+            <h1 className="text-3xl font-bold text-neutral-800 mb-6">👥 App teilen</h1>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-6 rounded-2xl mb-6 border border-blue-100">
+              <h2 className="font-bold text-lg text-neutral-800 mb-2">Hilf anderen bessere Entscheidungen zu treffen</h2>
+              <p className="text-sm text-neutral-600 leading-relaxed">Teile diese App mit Freunden und Familie.</p>
+            </div>
+            <button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_16px_rgba(79,128,255,0.3)] hover:shadow-[0_6px_20px_rgba(79,128,255,0.4)] hover:scale-[1.02] transition-all active:scale-95">
+              📤 App teilen
+            </button>
+          </div>
+        </div>
+        <TabBar />
+      </div>
+    );
+  }
+
+  if (activeTab === 3) {
+    return (
+      <div className="min-h-screen bg-neutral-50 pb-24">
+        <div className="max-w-2xl mx-auto p-6">
+          <div className="bg-gradient-to-br from-white to-neutral-50 rounded-3xl p-8 shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-3xl font-bold text-neutral-800">Einstellungen</h1>
+            </div>
+            
+            <div className="mb-8">
+              <h3 className="text-xs font-bold text-neutral-400 mb-4 tracking-wider">PERSONALISIERUNG</h3>
+              <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
+                {['Gewohnheitsmanager', 'Widget-Thema', 'Thema', 'Seite & Funktion'].map((item, i) => (
+                  <button key={i} className="w-full flex justify-between items-center p-5 hover:bg-neutral-50 transition-all active:scale-[0.99] border-b border-neutral-100 last:border-0">
+                    <span className="font-medium text-neutral-700">{item}</span>
+                    <span className="text-neutral-300">→</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-xs font-bold text-neutral-400 mb-4 tracking-wider">SYNCHRONISATION</h3>
+              <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
+                <div className="flex justify-between items-center p-5 border-b border-neutral-100">
+                  <span className="font-medium text-neutral-700">Google Drive Sync</span>
+                  <span className="text-sm text-neutral-400">Deaktiviert</span>
+                </div>
+                <button className="w-full flex justify-between items-center p-5 hover:bg-neutral-50 transition-all active:scale-[0.99]">
+                  <span className="font-medium text-neutral-700">Benachrichtigungen</span>
+                  <span className="text-neutral-300">→</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-xs font-bold text-neutral-400 mb-4 tracking-wider">ÜBER</h3>
+              <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
+                {[
+                  'Tipps für die Nutzung',
+                  'Häufig Gestellte Fragen',
+                  'Kontaktieren Sie uns',
+                  'Instagram: lightbyte_apps',
+                  'Teilen',
+                  { text: 'Bewerten und unterstützen', badge: 'V 1.0.0' }
+                ].map((item, i) => (
+                  <button key={i} className="w-full flex justify-between items-center p-5 hover:bg-neutral-50 transition-all active:scale-[0.99] border-b border-neutral-100 last:border-0">
+                    <span className="font-medium text-neutral-700">{typeof item === 'string' ? item : item.text}</span>
+                    <span className="text-neutral-300">{typeof item === 'string' ? '→' : item.badge}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-xs font-bold text-neutral-400 mb-4 tracking-wider">DATEN</h3>
+              <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
+                <button
+                  onClick={() => {
+                    const data = { completedDecisions, settings, date: new Date().toISOString() };
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'entscheidungen-backup.json';
+                    a.click();
+                  }}
+                  className="w-full flex justify-between items-center p-5 hover:bg-neutral-50 transition-all active:scale-[0.99] border-b border-neutral-100"
+                >
+                  <span className="font-medium text-neutral-700">Daten exportieren</span>
+                  <span>📥</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Möchtest du wirklich alle Daten löschen?')) {
+                      localStorage.clear();
+                      setCompletedDecisions([]);
+                      setDecision('');
+                      setAllAnswers({});
+                      setCurrentStep(0);
+                      setShowResults(false);
+                      setHasStarted(false);
+                      alert('Alle Daten wurden gelöscht.');
+                    }
+                  }}
+                  className="w-full flex justify-between items-center p-5 hover:bg-red-50 transition-all active:scale-[0.99] text-red-500"
+                >
+                  <span className="font-medium">Alle Daten löschen</span>
+                  <span>🗑️</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <TabBar />
+      </div>
+    );
+  }
 
   if (!hasStarted) {
     return (
-      <View style={styles.container}>
-        <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.card}>
-            <Text style={styles.mainTitle}>🧠 Entscheidungs-Assistent Pro</Text>
-
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>Systematische Entscheidungsfindung</Text>
-              <Text style={styles.infoText}>
-                Diese App führt dich durch 6 wissenschaftlich fundierte Schritte, um bessere Entscheidungen zu treffen.
-              </Text>
-            </View>
-
-            <Text style={styles.label}>Beschreibe deine Entscheidung kurz:</Text>
-            <TextInput
-              style={styles.textArea}
-              multiline
-              numberOfLines={4}
-              placeholder="z.B. Soll ich ein neues Auto kaufen?"
+      <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-blue-50/30 to-neutral-50 pb-24">
+        <div className="max-w-2xl mx-auto p-6 pt-12">
+          <div className="text-center mb-8 animate-[fadeIn_0.6s_ease-out]">
+            <div className="text-7xl mb-4">🧠</div>
+            <h1 className="text-4xl font-bold text-neutral-800 mb-3">Entscheidungs-Assistent</h1>
+            <p className="text-neutral-600 text-lg">Treffe heute eine bessere Entscheidung – in 6 klaren Schritten.</p>
+          </div>
+          <div className="bg-white rounded-3xl p-8 shadow-[0_4px_24px_rgba(0,0,0,0.08)] animate-[slideUp_0.6s_ease-out]">
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100/50 p-6 rounded-2xl mb-6 border border-blue-100">
+              <p className="text-sm text-neutral-700 leading-relaxed">Diese App führt dich durch 6 wissenschaftlich fundierte Schritte für durchdachte Entscheidungen.</p>
+            </div>
+            <label className="block mb-3 font-bold text-neutral-800">Beschreibe deine Entscheidung:</label>
+            <textarea
+              className="w-full border-2 border-neutral-200 focus:border-blue-400 rounded-2xl p-4 text-base resize-none transition-all focus:outline-none focus:shadow-[0_0_0_4px_rgba(79,128,255,0.1)]"
+              rows={4}
               value={decision}
-              onChangeText={(text) => text.length <= 500 && setDecision(text)}
-              maxLength={500}
+              onChange={(e) => e.target.value.length <= 500 && setDecision(e.target.value)}
+              placeholder="z.B. Soll ich ein neues Auto kaufen?"
             />
-            <View style={styles.charCount}>
-              <Text style={decision.trim().length >= 10 ? styles.validText : styles.invalidText}>
-                {decision.trim().length >= 10 ? '✓ Ausreichend' : `Noch ${10 - decision.trim().length} Zeichen benötigt`}
-              </Text>
-              <Text style={styles.charCountText}>{decision.length}/500</Text>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.button, decision.trim().length < 10 && styles.buttonDisabled]}
-              onPress={() => decision.trim().length >= 10 && setHasStarted(true)}
-              disabled={decision.trim().length < 10}
+            <div className="flex justify-between text-sm mt-3 mb-6">
+              <span className={decision.trim().length >= 10 ? 'text-green-500 font-semibold' : 'text-neutral-400'}>
+                {decision.trim().length >= 10 ? '✓ Perfekt!' : `Noch ${10 - decision.trim().length} Zeichen`}
+              </span>
+              <span className="text-neutral-400">{decision.length}/500</span>
+            </div>
+            <button
+              className={`w-full py-5 rounded-2xl font-bold text-lg transition-all shadow-lg ${
+                decision.trim().length >= 10
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-[0_6px_20px_rgba(79,128,255,0.4)] hover:scale-[1.02] active:scale-95'
+                  : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+              }`}
+              onClick={() => decision.trim().length >= 10 && setHasStarted(true)}
             >
-              <Text style={styles.buttonText}>
-                {decision.trim().length < 10 ? `Noch ${10 - decision.trim().length} Zeichen` : 'Analyse starten'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
+              {decision.trim().length >= 10 ? 'Analyse starten 🚀' : 'Beschreibe deine Entscheidung'}
+            </button>
+          </div>
+        </div>
+        <TabBar />
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+      </div>
     );
   }
 
   if (showResults) {
     const result = calculateDecision();
-    const resultColor = result.recommendation === 'JA' ? '#10b981' : result.recommendation === 'NEIN' ? '#ef4444' : '#f59e0b';
+    const isPositive = result.recommendation === 'JA';
+    const isNegative = result.recommendation === 'NEIN';
+    const color = isPositive ? 'from-green-400 to-green-500' : isNegative ? 'from-red-400 to-red-500' : 'from-yellow-400 to-yellow-500';
+    const message = isPositive
+      ? 'Dieser Weg könnte der richtige sein – du triffst durchdachte Entscheidungen! 🎉'
+      : isNegative
+      ? 'Die Analyse rät zur Vorsicht. Überlege es dir nochmal. 🤔'
+      : 'Die Signale sind gemischt. Sammle mehr Informationen. 🔍';
 
     return (
-      <View style={styles.container}>
-        <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.card}>
-            <View style={styles.headerRow}>
-              <Text style={styles.mainTitle}>✓ Deine Analyse</Text>
-            </View>
-
-            <View style={styles.decisionBox}>
-              <Text style={styles.decisionLabel}>Entscheidung:</Text>
-              <Text style={styles.decisionText}>{decision}</Text>
-            </View>
-
-            <View style={[styles.resultBox, { backgroundColor: resultColor }]}>
-              <Text style={styles.resultIcon}>
-                {result.recommendation === 'JA' ? '👍' : result.recommendation === 'NEIN' ? '👎' : '⚠️'}
-              </Text>
-              <Text style={styles.resultTitle}>{result.recommendation}</Text>
-              <Text style={styles.resultPercentage}>Konfidenz: {result.percentage}%</Text>
-              <Text style={styles.resultDescription}>
-                {result.recommendation === 'JA'
-                  ? 'Die Analyse spricht dafür, diese Entscheidung zu treffen.'
-                  : result.recommendation === 'NEIN'
-                  ? 'Die Analyse rät von dieser Entscheidung ab.'
-                  : 'Die Analyse ist nicht eindeutig. Sammle mehr Informationen.'}
-              </Text>
-            </View>
-
-            <TouchableOpacity style={styles.breakdownButton} onPress={() => setShowBreakdown(!showBreakdown)}>
-              <Text style={styles.breakdownButtonText}>{showBreakdown ? '📊 Breakdown ausblenden' : '📊 Breakdown anzeigen'}</Text>
-            </TouchableOpacity>
-
-            {showBreakdown && (
-              <View style={styles.breakdownBox}>
-                <Text style={styles.breakdownTitle}>Detaillierte Punkteverteilung</Text>
-                {result.breakdown.map((item, idx) => {
-                  const percentage = ((item.score + item.max) / (2 * item.max)) * 100;
-                  const barColor = percentage >= 60 ? '#10b981' : percentage >= 40 ? '#f59e0b' : '#ef4444';
-                  return (
-                    <View key={idx} style={styles.breakdownItem}>
-                      <View style={styles.breakdownHeader}>
-                        <Text style={styles.breakdownName}>{item.name}</Text>
-                        <Text style={styles.breakdownScore}>
-                          {item.score}/{item.max}
-                        </Text>
-                      </View>
-                      <View style={styles.progressBar}>
-                        <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: barColor }]} />
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-            {steps.map((step, idx) => (
-              <View key={idx} style={styles.stepSummary}>
-                <View style={styles.stepSummaryHeader}>
-                  <Text style={styles.stepSummaryTitle}>{step.title}</Text>
-                  <TouchableOpacity onPress={() => goToStep(idx)}>
-                    <Text style={styles.editButton}>✏️</Text>
-                  </TouchableOpacity>
-                </View>
-                {step.type === 'multitext' &&
-                  step.fields &&
-                  step.fields.map((field) => {
-                    const fieldValue = allAnswers[`step${idx}_${field.key}`];
-                    return fieldValue ? (
-                      <View key={field.key} style={styles.multitextField}>
-                        <Text style={styles.fieldLabel}>{field.label}</Text>
-                        <Text style={styles.fieldValue}>{fieldValue}</Text>
-                      </View>
-                    ) : null;
-                  })}
-                {allAnswers[`step${idx}_text`] && <Text style={styles.stepAnswer}>{allAnswers[`step${idx}_text`]}</Text>}
-                {allAnswers[`step${idx}_rating`] && <Text style={styles.stepRating}>→ {allAnswers[`step${idx}_rating`]}</Text>}
-              </View>
-            ))}
-
-            <TouchableOpacity style={styles.resetButton} onPress={reset}>
-              <Text style={styles.buttonText}>Neue Entscheidung analysieren</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
+      <div className="min-h-screen bg-neutral-50 pb-24">
+        <div className="max-w-2xl mx-auto p-6 pt-8">
+          <div className="bg-white rounded-3xl p-8 shadow-[0_4px_24px_rgba(0,0,0,0.08)] mb-6 animate-[popIn_0.5s_ease-out]">
+            <h1 className="text-3xl font-bold text-neutral-800 mb-6">✨ Deine Analyse</h1>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 rounded-2xl mb-6 border border-blue-100">
+              <p className="text-sm text-neutral-700 font-medium">{decision}</p>
+            </div>
+            <div className={`bg-gradient-to-br ${color} text-white rounded-3xl p-8 text-center mb-6 shadow-[0_8px_24px_rgba(0,0,0,0.15)] animate-[bounceIn_0.6s_ease-out]`}>
+              <div className="text-7xl mb-4 animate-[wiggle_1s_ease-in-out]">
+                {isPositive ? '👍' : isNegative ? '👎' : '⚠️'}
+              </div>
+              <h2 className="text-5xl font-bold mb-3">{result.recommendation}</h2>
+              <div className="inline-block bg-white/20 backdrop-blur-sm px-6 py-2 rounded-full mb-4">
+                <p className="text-xl font-semibold">Konfidenz: {result.percentage}%</p>
+              </div>
+              <p className="text-base leading-relaxed opacity-95">{message}</p>
+            </div>
+            <button
+              onClick={reset}
+              className="w-full bg-gradient-to-r from-neutral-700 to-neutral-800 text-white py-5 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all active:scale-95"
+            >
+              Neue Entscheidung analysieren 🔄
+            </button>
+          </div>
+        </div>
+        <TabBar />
+        <style>{`
+          @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+            60% { transform: scale(1.05) translateY(-5px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+          }
+        `}</style>
+      </div>
     );
   }
 
   const step = steps[currentStep];
-  const textKey = `step${currentStep}_text`;
-  const currentTextValue = allAnswers[textKey] || '';
-
-  let hasText = false;
-  if (step.type === 'multitext') {
-    hasText = step.fields.every((field) => {
-      const fieldValue = allAnswers[`step${currentStep}_${field.key}`] || '';
-      return fieldValue.trim().length >= field.minLength;
-    });
-  } else if (step.type === 'text') {
-    hasText = currentTextValue.trim().length >= (step.minLength || 0);
-  } else {
-    hasText = true;
-  }
+  const textValue = allAnswers[`step${currentStep}_text`] || '';
+  const hasText = step.type === 'text' ? textValue.trim().length >= 0 : true;
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.card}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.stepCounter}>
-              Schritt {currentStep + 1} von {steps.length}
-            </Text>
-            <View style={styles.progressDots}>
-              {steps.map((_, idx) => (
-                <View key={idx} style={[styles.dot, idx <= currentStep && styles.dotActive]} />
+    <div className="min-h-screen bg-neutral-50 pb-24">
+      <div className="max-w-2xl mx-auto p-6 pt-8">
+        <div className="bg-white rounded-3xl p-8 shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm font-bold text-blue-500">
+                Schritt {currentStep + 1} von {steps.length}
+              </p>
+              <span className="text-3xl">{step.emoji}</span>
+            </div>
+            <div className="flex gap-2">
+              {steps.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-2 flex-1 rounded-full transition-all duration-500 ${
+                    i <= currentStep ? 'bg-gradient-to-r from-blue-400 to-blue-500' : 'bg-neutral-200'
+                  }`}
+                />
               ))}
-            </View>
-          </View>
-
-          <View style={styles.decisionBox}>
-            <Text style={styles.decisionText}>{decision}</Text>
-          </View>
-
-          <Text style={styles.stepTitle}>{step.title}</Text>
-          <Text style={styles.stepQuestion}>{step.question}</Text>
-
-          <View style={styles.insightBox}>
-            <Text style={styles.insightText}>{step.insight}</Text>
-          </View>
-
-          {step.type === 'multitext' ? (
-            <View>
-              {step.fields.map((field) => {
-                const fieldKey = `step${currentStep}_${field.key}`;
-                const fieldValue = allAnswers[fieldKey] || '';
-                const isValid = fieldValue.trim().length >= field.minLength;
-                return (
-                  <View key={field.key} style={styles.multitextContainer}>
-                    <Text style={styles.fieldLabel}>
-                      {field.label} {isValid && '✓'}
-                    </Text>
-                    <TextInput
-                      style={styles.textArea}
-                      multiline
-                      numberOfLines={3}
-                      placeholder={field.placeholder}
-                      value={fieldValue}
-                      onChangeText={(text) => updateAnswer(fieldKey, text)}
-                    />
-                    <Text style={styles.charInfo}>
-                      {fieldValue.length} Zeichen {!isValid && `(min. ${field.minLength})`}
-                    </Text>
-                  </View>
-                );
-              })}
-              {hasText && step.followUp && (
-                <View style={styles.followUpBox}>
-                  <Text style={styles.followUpQuestion}>{step.followUp}</Text>
-                  {step.followUpOptions.map((option) => (
-                    <TouchableOpacity key={option} style={styles.optionButton} onPress={() => handleOptionClick(option)}>
-                      <Text style={styles.optionText}>{option}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          ) : step.type === 'text' ? (
-            <View>
-              <TextInput
-                style={styles.textArea}
-                multiline
-                numberOfLines={6}
-                placeholder="Schreibe hier deine Gedanken... (Minimum 5 Zeichen)"
-                value={currentTextValue}
-                onChangeText={(text) => updateAnswer(textKey, text)}
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 rounded-2xl mb-6 border border-blue-100">
+            <p className="text-sm text-neutral-700 font-medium">{decision}</p>
+          </div>
+          <h2 className="text-2xl font-bold text-neutral-800 mb-3">{step.title}</h2>
+          <p className="text-neutral-600 mb-6 text-lg">{step.question}</p>
+          {step.type === 'text' ? (
+            <>
+              <textarea
+                className="w-full border-2 border-neutral-200 focus:border-blue-400 rounded-2xl p-4 text-base resize-none mb-4 transition-all focus:outline-none focus:shadow-[0_0_0_4px_rgba(79,128,255,0.1)]"
+                rows={4}
+                value={textValue}
+                onChange={(e) => updateAnswer(`step${currentStep}_text`, e.target.value)}
+                placeholder="Deine Gedanken..."
               />
-              <Text style={hasText ? styles.validText : styles.invalidText}>
-                {currentTextValue.length} Zeichen {hasText ? '✓' : `(min. ${step.minLength})`}
-              </Text>
-              {hasText && step.followUp && (
-                <View style={styles.followUpBox}>
-                  <Text style={styles.followUpQuestion}>{step.followUp}</Text>
-                  {step.followUpOptions.map((option) => (
-                    <TouchableOpacity key={option} style={styles.optionButton} onPress={() => handleOptionClick(option)}>
-                      <Text style={styles.optionText}>{option}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              {step.followUp && (
+                <div className="bg-neutral-50 p-6 rounded-2xl">
+                  <p className="font-bold text-neutral-800 mb-4">{step.followUp}</p>
+                  <div className="space-y-3">
+                    {step.followUpOptions.map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => handleOptionClick(opt)}
+                        className="w-full p-4 bg-white border-2 border-neutral-200 hover:border-blue-400 rounded-xl text-left font-medium text-neutral-700 transition-all hover:shadow-[0_2px_12px_rgba(79,128,255,0.15)] hover:scale-[1.01] active:scale-[0.99]"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
-            </View>
+            </>
           ) : (
-            <View>
-              {step.options.map((option) => (
-                <TouchableOpacity key={option} style={styles.optionButton} onPress={() => handleOptionClick(option)}>
-                  <Text style={styles.optionText}>{option}</Text>
-                </TouchableOpacity>
+            <div className="space-y-3">
+              {step.options.map(opt => (
+                <button
+                  key={opt}
+                  onClick={() => handleOptionClick(opt)}
+                  className="w-full p-4 bg-white border-2 border-neutral-200 hover:border-blue-400 rounded-xl text-left font-medium text-neutral-700 transition-all hover:shadow-[0_2px_12px_rgba(79,128,255,0.15)] hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  {opt}
+                </button>
               ))}
-            </View>
+            </div>
           )}
-
           {currentStep > 0 && (
-            <TouchableOpacity style={styles.backButton} onPress={() => setCurrentStep(currentStep - 1)}>
-              <Text style={styles.backButtonText}>← Zurück</Text>
-            </TouchableOpacity>
+            <button
+              onClick={() => setCurrentStep(currentStep - 1)}
+              className="mt-6 text-neutral-500 hover:text-neutral-700 font-medium transition-all"
+            >
+              ← Zurück
+            </button>
           )}
-        </View>
-      </ScrollView>
-    </View>
+        </div>
+      </div>
+      <TabBar />
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f0f4f8',
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  mainTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 16,
-  },
-  infoBox: {
-    backgroundColor: '#e0e7ff',
-    borderLeftWidth: 4,
-    borderLeftColor: '#4f46e5',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#4b5563',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  textArea: {
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  charCount: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  validText: {
-    color: '#10b981',
-    fontWeight: '600',
-  },
-  invalidText: {
-    color: '#6b7280',
-  },
-  charCountText: {
-    color: '#9ca3af',
-  },
-  button: {
-    backgroundColor: '#4f46e5',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#d1d5db',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  progressHeader: {
-    marginBottom: 16,
-  },
-  stepCounter: {
-    fontSize: 14,
-    color: '#4f46e5',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  progressDots: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  dot: {
-    height: 8,
-    flex: 1,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 4,
-  },
-  dotActive: {
-    backgroundColor: '#4f46e5',
-  },
-  decisionBox: {
-    backgroundColor: '#e0e7ff',
-    borderLeftWidth: 4,
-    borderLeftColor: '#4f46e5',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  decisionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
-  },
-  decisionText: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  stepTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  stepQuestion: {
-    fontSize: 16,
-    color: '#374151',
-    marginBottom: 16,
-  },
-  insightBox: {
-    backgroundColor: '#dbeafe',
-    borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  insightText: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  optionButton: {
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 8,
-  },
-  optionText: {
-    fontSize: 16,
-    color: '#1f2937',
-  },
-  backButton: {
-    marginTop: 16,
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    color: '#4b5563',
-    fontSize: 16,
-  },
-  followUpBox: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 16,
-  },
-  followUpQuestion: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  multitextContainer: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  charInfo: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  resultBox: {
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  resultIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  resultTitle: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
-  },
-  resultPercentage: {
-    fontSize: 20,
-    color: 'white',
-    marginBottom: 8,
-  },
-  resultDescription: {
-    fontSize: 16,
-    color: 'white',
-    textAlign: 'center',
-  },
-  breakdownButton: {
-    backgroundColor: '#e0e7ff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  breakdownButtonText: {
-    color: '#4f46e5',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  breakdownBox: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-  },
-  breakdownTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  breakdownItem: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  breakdownHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  breakdownName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  breakdownScore: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  progressBar: {
-    height: 12,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 6,
-  },
-  stepSummary: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-  },
-  stepSummaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  stepSummaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  editButton: {
-    fontSize: 18,
-  },
-  stepAnswer: {
-    fontSize: 14,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  stepRating: {
-    fontSize: 14,
-    color: '#4f46e5',
-    fontWeight: '600',
-  },
-  multitextField: {
-    borderLeftWidth: 2,
-    borderLeftColor: '#a78bfa',
-    paddingLeft: 12,
-    marginBottom: 12,
-  },
-  fieldValue: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  resetButton: {
-    backgroundColor: '#6b7280',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-});
