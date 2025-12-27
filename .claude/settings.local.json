@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm start)",
+      "Bash(npx expo start:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm install:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx expo:*)",
+      "Bash(powershell -Command \"(Get-Content App.js | Measure-Object -Line).Lines\")",
+      "Bash(npx tsc:*)",
+      "Bash(del test-imports.js)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 15664 -Force\")",
+      "Bash(node scripts/generateIcons.js:*)",
+      "Bash(node scripts/generateSplash.js:*)",
+      "Bash(cat:*)",
+      "Bash(node:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 24076 -Force\")",
+      "Bash(powershell -Command:*)",
+      "Bash($null)",
+      "Bash(del \"services\\authService.js\" \"services\\enhancedAuthService.js\" \"components\\OnboardingFlow.js\" \"components\\SurveyOnboarding.js\" \"screens\\AuthGateway.js\" \"screens\\EnhancedAuthGateway.js\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

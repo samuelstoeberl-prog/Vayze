@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "761029973934",
+    "project_id": "vayze-918fc",
+    "storage_bucket": "vayze-918fc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:761029973934:android:458cff560db6c5c93d9a3f",
+        "android_client_info": {
+          "package_name": "com.Vayze"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVFwkATzDCXqrc18kw1gwwTUDyiqfwcuw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
