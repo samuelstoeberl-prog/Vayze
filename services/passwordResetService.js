@@ -1,19 +1,9 @@
-/**
- * Password Reset Service
- * Firebase-based email password reset
- */
-
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from './firebaseConfig';
 
-/**
- * Send password reset email
- * @param {string} email - User's email address
- * @returns {Promise<{success: boolean, message: string}>}
- */
 export const sendPasswordReset = async (email) => {
   try {
-    // Validate email
+    
     if (!email || !email.trim()) {
       return {
         success: false,
@@ -21,7 +11,6 @@ export const sendPasswordReset = async (email) => {
       };
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return {
@@ -30,20 +19,10 @@ export const sendPasswordReset = async (email) => {
       };
     }
 
-    if (__DEV__) {
-      console.log('🔐 [passwordReset] Sending reset email to:', email);
-    }
-
-    // Send password reset email via Firebase
     await sendPasswordResetEmail(auth, email, {
-      // Custom email action handler (optional)
-      // url: 'https://vayze.app/reset-complete',
+
       handleCodeInApp: false,
     });
-
-    if (__DEV__) {
-      console.log('✅ [passwordReset] Reset email sent successfully');
-    }
 
     return {
       success: true,
@@ -51,12 +30,10 @@ export const sendPasswordReset = async (email) => {
     };
 
   } catch (error) {
-    console.error('❌ [passwordReset] Error:', error);
 
-    // Handle Firebase Auth errors
     switch (error.code) {
       case 'auth/user-not-found':
-        // Don't reveal if user exists (security)
+        
         return {
           success: true,
           message: 'Falls ein Account mit dieser E-Mail existiert, haben wir dir Anweisungen zum Zurücksetzen des Passworts gesendet.'
@@ -89,31 +66,19 @@ export const sendPasswordReset = async (email) => {
   }
 };
 
-/**
- * Verify password reset code (optional - for custom UI)
- * @param {string} code - Reset code from email
- * @returns {Promise<string>} Email address associated with code
- */
 export const verifyPasswordResetCode = async (code) => {
   try {
     const { verifyPasswordResetCode } = await import('firebase/auth');
     const email = await verifyPasswordResetCode(auth, code);
     return { success: true, email };
   } catch (error) {
-    console.error('❌ [passwordReset] Verify code error:', error);
-    return {
+        return {
       success: false,
       message: 'Ungültiger oder abgelaufener Reset-Code.'
     };
   }
 };
 
-/**
- * Confirm password reset with new password (optional - for custom UI)
- * @param {string} code - Reset code from email
- * @param {string} newPassword - New password
- * @returns {Promise<{success: boolean, message: string}>}
- */
 export const confirmPasswordReset = async (code, newPassword) => {
   try {
     const { confirmPasswordReset } = await import('firebase/auth');
@@ -124,8 +89,7 @@ export const confirmPasswordReset = async (code, newPassword) => {
       message: 'Passwort erfolgreich zurückgesetzt.'
     };
   } catch (error) {
-    console.error('❌ [passwordReset] Confirm reset error:', error);
-
+    
     switch (error.code) {
       case 'auth/expired-action-code':
         return {

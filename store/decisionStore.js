@@ -1,9 +1,3 @@
-/**
- * Zustand Store für Decision Management
- * Zentrale State-Verwaltung für das neue Decision Learning System
- * Mit User-Scoped Storage Pattern
- */
-
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DecisionExplainer } from '../utils/decisionExplainer';
@@ -12,48 +6,37 @@ import { InsightEngine } from '../utils/insightEngine';
 import { DecisionReview, calculateReviewDueDate, findDueReviews } from '../models/DecisionReview';
 import { DecisionProfile } from '../models/DecisionProfile';
 import { ConfidenceScoreCalculator } from '../utils/confidenceScoreCalculator';
+import { logEvent as logAnalyticsEvent } from '../utils/analytics';
 
-// Storage Keys
 const DECISIONS_KEY = 'decisions_v2';
 const REVIEWS_KEY = 'decision_reviews';
 const PROFILE_KEY = 'decision_profile';
 
-// Helper to get user-scoped key
 const getUserKey = (userId, key) => {
-  if (!userId) return key; // Fallback to global
+  if (!userId) return key; 
   return `user_${userId}_${key}`;
 };
 
 export const useDecisionStore = create((set, get) => ({
-  // ========== STATE ==========
+  
   currentUserId: null,
   decisions: [],
   reviews: [],
   profile: null,
   confidenceScore: null,
 
-  // Current Decision (in progress)
   currentDecision: null,
   weightPreset: 'balanced',
 
-  // UI State
   isLoading: false,
   error: null,
 
-  // ========== USER MANAGEMENT ==========
-
-  /**
-   * Set current user (must be called after login)
-   */
   setCurrentUser: async (userId) => {
     set({ currentUserId: userId, isLoading: true });
     await get().loadData(userId);
     set({ isLoading: false });
   },
 
-  /**
-   * Clear current user (on logout)
-   */
   clearCurrentUser: () => {
     set({
       currentUserId: null,
@@ -65,15 +48,9 @@ export const useDecisionStore = create((set, get) => ({
     });
   },
 
-  // ========== DECISION CREATION ==========
-
-  /**
-   * Start a new decision
-   */
   startDecision: (data) => {
     const { currentUserId } = get();
 
-    // Empfehle Preset basierend auf Entscheidungstext
     const recommendedPreset = recommendPreset(data.decision);
 
     const newDecision = {
@@ -95,11 +72,14 @@ export const useDecisionStore = create((set, get) => ({
     };
 
     set({ currentDecision: newDecision, weightPreset: newDecision.weightPreset });
+
+    logAnalyticsEvent('decision_started', {
+      mode: newDecision.mode,
+      category: newDecision.category,
+      weightPreset: newDecision.weightPreset
+    });
   },
 
-  /**
-   * Update answers (auto-save)
-   */
   updateAnswers: (stepKey, answer) => {
     const { currentDecision } = get();
     if (!currentDecision) return;
@@ -115,9 +95,6 @@ export const useDecisionStore = create((set, get) => ({
     set({ currentDecision: updatedDecision });
   },
 
-  /**
-   * Change weight preset
-   */
   setWeightPreset: (preset) => {
     const { currentDecision } = get();
     if (!currentDecision) return;
@@ -131,24 +108,18 @@ export const useDecisionStore = create((set, get) => ({
     });
   },
 
-  /**
-   * Calculate recommendation with explainability
-   */
   calculateRecommendation: () => {
     const { currentDecision, weightPreset } = get();
     if (!currentDecision) return null;
 
     const { answers, mode } = currentDecision;
 
-    // Berechne gewichteten Score
     const finalScore = applyWeights(answers, mode, weightPreset);
 
-    // Bestimme Empfehlung
     let recommendation = 'unclear';
     if (finalScore >= 60) recommendation = 'yes';
     else if (finalScore <= 40) recommendation = 'no';
 
-    // Generiere Erklärung
     const explanation = DecisionExplainer.explainDecision(
       answers,
       mode,
@@ -156,7 +127,6 @@ export const useDecisionStore = create((set, get) => ({
       recommendation
     );
 
-    // Update current decision
     const updatedDecision = {
       ...currentDecision,
       finalScore,
@@ -169,9 +139,6 @@ export const useDecisionStore = create((set, get) => ({
     return { finalScore, recommendation, explanation };
   },
 
-  /**
-   * Save completed decision
-   */
   saveCompletedDecision: async (additionalData = {}) => {
     const { currentDecision, currentUserId, decisions } = get();
     if (!currentDecision) return;
@@ -191,28 +158,26 @@ export const useDecisionStore = create((set, get) => ({
       weightPreset: 'balanced'
     });
 
-    // Save to storage
+    await logAnalyticsEvent('decision_completed', {
+      mode: completedDecision.mode,
+      category: completedDecision.category,
+      recommendation: completedDecision.recommendation,
+      finalScore: completedDecision.finalScore,
+      weightPreset: completedDecision.weightPreset
+    });
+
     await get()._saveDecisions(updatedDecisions);
 
-    // Update profile and confidence score
     get().updateProfile();
     get().updateConfidenceScore();
 
     return completedDecision;
   },
 
-  /**
-   * Cancel current decision
-   */
   cancelDecision: () => {
     set({ currentDecision: null, weightPreset: 'balanced' });
   },
 
-  // ========== REVIEWS ==========
-
-  /**
-   * Add a review for a decision
-   */
   addReview: async (decisionId, reviewData) => {
     const { reviews, decisions, currentUserId } = get();
 
@@ -228,7 +193,6 @@ export const useDecisionStore = create((set, get) => ({
 
     const updatedReviews = [...reviews, review.toJSON()];
 
-    // Update decision with review
     const updatedDecisions = decisions.map(d =>
       d.id === decisionId
         ? { ...d, review: review.toJSON(), reviewReminded: true }
@@ -240,28 +204,20 @@ export const useDecisionStore = create((set, get) => ({
       decisions: updatedDecisions
     });
 
-    // Save to storage
     await get()._saveReviews(updatedReviews);
     await get()._saveDecisions(updatedDecisions);
 
-    // Update profile and confidence score
     get().updateProfile();
     get().updateConfidenceScore();
 
     return review;
   },
 
-  /**
-   * Get due reviews
-   */
   getDueReviews: () => {
     const { decisions } = get();
     return findDueReviews(decisions);
   },
 
-  /**
-   * Mark decision as reminded
-   */
   markAsReminded: async (decisionId) => {
     const { decisions } = get();
     const updatedDecisions = decisions.map(d =>
@@ -272,11 +228,6 @@ export const useDecisionStore = create((set, get) => ({
     await get()._saveDecisions(updatedDecisions);
   },
 
-  // ========== PROFILE & INSIGHTS ==========
-
-  /**
-   * Update user profile
-   */
   updateProfile: () => {
     const { decisions, reviews } = get();
 
@@ -289,9 +240,6 @@ export const useDecisionStore = create((set, get) => ({
     set({ profile: profile.toJSON() });
   },
 
-  /**
-   * Update confidence score
-   */
   updateConfidenceScore: () => {
     const { decisions, reviews } = get();
 
@@ -299,17 +247,11 @@ export const useDecisionStore = create((set, get) => ({
     set({ confidenceScore });
   },
 
-  /**
-   * Generate user insights
-   */
   getUserInsights: () => {
     const { decisions } = get();
     return InsightEngine.generateUserInsights(decisions);
   },
 
-  /**
-   * Generate insights for a specific decision
-   */
   getDecisionInsights: (decisionId) => {
     const { decisions } = get();
     const decision = decisions.find(d => d.id === decisionId);
@@ -318,11 +260,6 @@ export const useDecisionStore = create((set, get) => ({
     return InsightEngine.generateDecisionInsights(decision, decisions);
   },
 
-  // ========== DATA MANAGEMENT ==========
-
-  /**
-   * Load all data for current user
-   */
   loadData: async (userId) => {
     try {
       set({ isLoading: true, error: null });
@@ -340,39 +277,29 @@ export const useDecisionStore = create((set, get) => ({
 
       set({ decisions, reviews });
 
-      // Update profile and confidence score
       get().updateProfile();
       get().updateConfidenceScore();
 
     } catch (error) {
-      console.error('Error loading decision data:', error);
+      
       set({ error: 'Failed to load data' });
     } finally {
       set({ isLoading: false });
     }
   },
 
-  /**
-   * Save decisions to storage (internal)
-   */
   _saveDecisions: async (decisions) => {
     const { currentUserId } = get();
     const key = getUserKey(currentUserId, DECISIONS_KEY);
     await AsyncStorage.setItem(key, JSON.stringify(decisions));
   },
 
-  /**
-   * Save reviews to storage (internal)
-   */
   _saveReviews: async (reviews) => {
     const { currentUserId } = get();
     const key = getUserKey(currentUserId, REVIEWS_KEY);
     await AsyncStorage.setItem(key, JSON.stringify(reviews));
   },
 
-  /**
-   * Delete a decision
-   */
   deleteDecision: async (decisionId) => {
     const { decisions, reviews } = get();
 
@@ -388,9 +315,6 @@ export const useDecisionStore = create((set, get) => ({
     get().updateConfidenceScore();
   },
 
-  /**
-   * Export all data
-   */
   exportData: () => {
     const { decisions, reviews, profile, confidenceScore } = get();
 
@@ -404,9 +328,6 @@ export const useDecisionStore = create((set, get) => ({
     };
   },
 
-  /**
-   * Import data
-   */
   importData: async (data) => {
     const { currentUserId } = get();
 
@@ -415,7 +336,6 @@ export const useDecisionStore = create((set, get) => ({
       return false;
     }
 
-    // Filter decisions for current user
     const userDecisions = data.decisions.filter(d => d.userId === currentUserId);
     const userReviews = data.reviews?.filter(r =>
       userDecisions.some(d => d.id === r.decisionId)
@@ -435,9 +355,6 @@ export const useDecisionStore = create((set, get) => ({
     return true;
   },
 
-  /**
-   * Clear all data for current user
-   */
   clearAllData: async () => {
     const { currentUserId } = get();
 
@@ -460,19 +377,11 @@ export const useDecisionStore = create((set, get) => ({
     ]);
   },
 
-  // ========== STATISTICS & QUERIES ==========
-
-  /**
-   * Get decisions by category
-   */
   getDecisionsByCategory: (category) => {
     const { decisions } = get();
     return decisions.filter(d => d.category === category);
   },
 
-  /**
-   * Get decisions by date range
-   */
   getDecisionsByDateRange: (startDate, endDate) => {
     const { decisions } = get();
     return decisions.filter(d => {
@@ -481,17 +390,11 @@ export const useDecisionStore = create((set, get) => ({
     });
   },
 
-  /**
-   * Get decision by ID
-   */
   getDecisionById: (id) => {
     const { decisions } = get();
     return decisions.find(d => d.id === id);
   },
 
-  /**
-   * Get statistics
-   */
   getStatistics: () => {
     const { decisions, reviews } = get();
 

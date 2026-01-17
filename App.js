@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Share, Linking, Switch, Platform, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BoardView from './components/Board/BoardView';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import StandaloneAuthScreen from './screens/StandaloneAuthScreen';
 import SplashScreen from './components/SplashScreen';
-import OnboardingFlowNew from './components/OnboardingFlowNew';
 import AccountScreen from './screens/AccountScreen';
 import { useCardStore } from './store/cardStore';
 import { useDecisionStore } from './store/decisionStore';
@@ -17,13 +17,20 @@ import firebaseAuthService from './services/firebaseAuthService';
 import { useAppStateMachine, APP_STATES } from './hooks/useAppStateMachine';
 import SafeLoadingScreen from './components/SafeLoadingScreen';
 import ErrorScreen from './components/ErrorScreen';
-
-const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 44 : 0;
+import { logEvent as logAnalyticsEvent } from './utils/analytics';
+import {
+  VollstaendigIcon, SchnellIcon, BrainIcon, BoardIcon, TrackerIcon, InsightsIcon, SettingsIcon,
+  CircleIcon, CheckCircleIcon, ZapIcon, PlusIcon, SearchIcon, TrendingUpIcon, LightbulbIcon, TargetIcon, CalendarIcon
+} from './components/Icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import firebaseMessagingService from './services/firebaseMessagingService';
+import pushNotificationService from './services/pushNotificationService';
+import JournalDashboardScreen from './screens/JournalDashboardScreen';
 
 function MainApp() {
   const { isAuthenticated, isLoading: authLoading, signOut, signIn, user } = useAuth();
+  const insets = useSafeAreaInsets();
 
-  // STATE MACHINE - Replaces all boolean-based flow control
   const stateMachine = useAppStateMachine();
 
   const addCard = useCardStore((state) => state.addCard);
@@ -31,7 +38,6 @@ function MainApp() {
   const loadCardsFromStorage = useCardStore((state) => state.loadFromStorage);
   const clearCards = useCardStore((state) => state.clearCards);
 
-  // Decision Store
   const setCurrentDecisionUser = useDecisionStore((state) => state.setCurrentUser);
   const clearCurrentDecisionUser = useDecisionStore((state) => state.clearCurrentUser);
   const startDecision = useDecisionStore((state) => state.startDecision);
@@ -50,11 +56,12 @@ function MainApp() {
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
   const [decisionMode, setDecisionMode] = useState('full');
-  const [category, setCategory] = useState(['Leben']); // Array für Multi-Select
+  const [category, setCategory] = useState(['Leben']); 
   const [isFavorite, setIsFavorite] = useState(false);
   const [journal, setJournal] = useState('');
   const [showNextSteps, setShowNextSteps] = useState(false);
   const [nextSteps, setNextSteps] = useState(['', '', '']);
+  const [currentDecisionId, setCurrentDecisionId] = useState(null);
   const [settings, setSettings] = useState({
     notifications: true,
     darkMode: false,
@@ -62,36 +69,72 @@ function MainApp() {
   });
   const [pendingResume, setPendingResume] = useState(null);
 
-  // Review Modal State
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [currentReviewDecision, setCurrentReviewDecision] = useState(null);
   const [hasAutoSaved, setHasAutoSaved] = useState(false);
-  const [isFirstLaunch, setIsFirstLaunch] = useState(true);
-  const [currentOnboardingStep, setCurrentOnboardingStep] = useState(0);
   const [showAccountScreen, setShowAccountScreen] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [showJournalScreen, setShowJournalScreen] = useState(false);
 
-  // Define all functions before hooks
+  // Firbase Massaging
+
+  // Push Notifications Setup with Expo
+  useEffect(() => {
+    let cleanup;
+
+    async function setupPushNotifications() {
+      try {
+        // Initialize push notification handlers
+        cleanup = await pushNotificationService.initialize();
+
+        // Only setup if user is authenticated
+        if (isAuthenticated && user?.email) {
+          // Request permission and get token
+          const token = await firebaseMessagingService.requestPermissionAndGetToken();
+
+          if (token) {
+            // Save token to Firestore
+            await firebaseMessagingService.saveTokenToFirestore(user.email);
+            console.log('✅ Push notifications enabled for:', user.email);
+
+            // Subscribe to topics (optional)
+            await firebaseMessagingService.subscribeToTopic('all_users');
+
+            // Clean up old tokens
+            await firebaseMessagingService.cleanupInvalidTokens(user.email);
+          }
+
+          // Check if app was opened from notification
+          await pushNotificationService.getInitialNotification();
+        }
+      } catch (error) {
+        console.error('Push notification setup error:', error);
+      }
+    }
+
+    setupPushNotifications();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [isAuthenticated, user]);
+
+
   const loadAllData = async () => {
     try {
-      // Only load user data if authenticated
+      
       if (!user || !user.email) {
-        if (__DEV__) console.log('⚠️ [App] No user, skipping data load');
-        return;
+                return;
       }
 
-      if (__DEV__) console.log('✅ [App] Loading data for user:', user.email);
-
-      // Migrate old global data to user-scoped (one-time migration)
-      await migrateToUserScope(user.email, 'decisions', 'completedDecisions');
+            await migrateToUserScope(user.email, 'decisions', 'completedDecisions');
       await migrateToUserScope(user.email, 'settings', 'appSettings');
       await migrateToUserScope(user.email, 'decisionData');
 
-      // Load user-scoped data
       const savedDecisions = await loadUserData(user.email, 'decisions', []);
-      if (__DEV__) console.log(`📊 [App] Loaded ${savedDecisions.length} decisions for user: ${user.email}`);
-      setCompletedDecisions(savedDecisions);
+      console.log('Loaded decisions:', savedDecisions.length, 'decisions');
+            setCompletedDecisions(savedDecisions);
 
-      // Initialize Decision Store
       setCurrentDecisionUser(user.email);
 
       const savedSettings = await loadUserData(user.email, 'settings', {
@@ -106,21 +149,20 @@ function MainApp() {
         setPendingResume(saved);
       }
     } catch (error) {
-      if (__DEV__) console.error('Load error:', error);
+      console.error('Error loading user data:', error);
     }
   };
 
   const saveData = async () => {
     try {
       if (!user || !user.email) {
-        if (__DEV__) console.warn('⚠️ [App] Cannot save data: No user');
-        return;
+                return;
       }
       await saveUserData(user.email, 'decisionData', {
         decision, answers: allAnswers, step: currentStep, showResults,
       });
     } catch (error) {
-      if (__DEV__) console.error('Save error:', error);
+      console.error('Error saving decision data:', error);
     }
   };
 
@@ -154,27 +196,6 @@ function MainApp() {
 
   const categories = ['Leben', 'Arbeit', 'Finanzen', 'Beziehung', 'Gesundheit', 'Projekte'];
   const currentSteps = decisionMode === 'quick' ? quickSteps : steps;
-
-  const completeOnboarding = async (onboardingData) => {
-    try {
-      if (__DEV__) console.log('🎯 [completeOnboarding] Onboarding completed, redirecting to login');
-      if (__DEV__) console.log('📊 [completeOnboarding] Survey data:', onboardingData?.survey);
-
-      // Simply mark onboarding as complete and redirect to login
-      // Don't create account here - let user do it on the login screen
-      await AsyncStorage.setItem('hasLaunched', 'true');
-      if (__DEV__) console.log('✅ [completeOnboarding] Marked device as launched');
-
-      // CRITICAL: Use setTimeout to ensure state update happens in next tick
-      // This forces React to re-render with the new state
-      setTimeout(() => {
-        setIsFirstLaunch(false);
-        if (__DEV__) console.log('✅ [completeOnboarding] Redirecting to login screen NOW');
-      }, 100);
-    } catch (error) {
-      if (__DEV__) console.error('💥 [completeOnboarding] Error:', error);
-    }
-  };
 
   const updateAnswer = (key, value) => {
     setAllAnswers(prev => ({ ...prev, [key]: value }));
@@ -287,81 +308,14 @@ function MainApp() {
     setJournal('');
     setShowNextSteps(false);
     setNextSteps(['', '', '']);
+    setCurrentDecisionId(null);
     setDecisionMode('full');
-    setHasAutoSaved(false); // Reset auto-save flag for next decision
+    setHasAutoSaved(false);
     if (removeData && user && user.email) {
       await removeUserData(user.email, 'decisionData');
     }
   };
 
-  const reset = async () => {
-    const result = calculateDecision();
-    // Use local date/time instead of UTC to avoid timezone issues
-    const now = new Date();
-    const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
-
-    const newDecision = {
-      id: Date.now(),
-      date: localDate,
-      decision,
-      recommendation: result.recommendation,
-      percentage: result.percentage,
-      factors: result.factors || [], // Save explainability factors
-      category,
-      isFavorite,
-      journal,
-      mode: decisionMode
-    };
-
-    // Debug logging
-    if (__DEV__) {
-      console.log('=== SAVING DECISION ===');
-      console.log('Current date:', now);
-      console.log('Local adjusted:', localDate);
-      console.log('Date ISO:', localDate);
-      console.log('Date parsed back:', new Date(localDate).toLocaleString('de-DE'));
-      console.log('Month:', new Date(localDate).getMonth(), 'Year:', new Date(localDate).getFullYear());
-      console.log('Day:', new Date(localDate).getDate());
-      console.log('New decision:', newDecision);
-      console.log('Factors:', result.factors);
-    }
-
-    const updated = [...completedDecisions, newDecision];
-
-    if (__DEV__) {
-      console.log('=== BEFORE SAVE ===');
-      console.log('User object:', user);
-      console.log('User email:', user?.email);
-      console.log('Is authenticated:', isAuthenticated);
-      console.log('Updated array length:', updated.length);
-    }
-
-    if (!user || !user.email) {
-      if (__DEV__) console.error('⚠️ [App] CRITICAL: Cannot save decision - No user or email!');
-      if (__DEV__) console.error('User:', user);
-      if (__DEV__) console.error('isAuthenticated:', isAuthenticated);
-      Alert.alert('Fehler', 'Benutzer nicht gefunden. Bitte melde dich erneut an.');
-      return;
-    }
-
-    // Update state BEFORE saving to storage
-    setCompletedDecisions(updated);
-
-    // Save to storage
-    await saveUserData(user.email, 'decisions', updated);
-
-    // Verify save
-    if (__DEV__) {
-      const saved = await loadUserData(user.email, 'decisions', []);
-      console.log('✅ Verified saved data:', saved.length, 'decisions for user:', user.email);
-      console.log('Last decision:', saved[saved.length - 1]);
-    }
-
-    await resetDecisionState();
-
-    if (__DEV__) console.log('Switching to Tracker tab...');
-    setActiveTab(2);
-  };
 
   const getCurrentStreak = () => {
     if (completedDecisions.length === 0) return 0;
@@ -469,58 +423,42 @@ function MainApp() {
     Linking.openURL(url).catch(() => Alert.alert('Fehler', 'Link konnte nicht geöffnet werden'));
   };
 
-  // All useEffect hooks must be before any conditional returns
-  // Load data when user changes (login/logout)
   useEffect(() => {
     if (isAuthenticated && user && user.email) {
-      // Set user in cardStore
+      
       setCurrentUser(user.email);
 
-      // Load all user data
       loadAllData();
       loadCardsFromStorage(user.email);
 
-      // Check for due reviews after data loads
       setTimeout(() => {
         const dueReviews = getDueReviews();
         if (dueReviews.length > 0 && !currentReviewDecision) {
           setCurrentReviewDecision(dueReviews[0]);
           setReviewModalVisible(true);
         }
-      }, 2000); // Wait 2 seconds after login
+      }, 2000); 
     } else {
-      // Clear state when logged out
+      
       setCompletedDecisions([]);
       setSettings({ notifications: true, darkMode: false, analytics: true });
       clearCards();
       clearCurrentDecisionUser();
     }
-  }, [user?.email, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.email, isAuthenticated]); 
 
   // Auto-save decision when results are shown
   useEffect(() => {
     const autoSaveDecision = async () => {
-      if (__DEV__) {
-        console.log('=== AUTO-SAVE CHECK ===');
-        console.log('showResults:', showResults);
-        console.log('hasAutoSaved:', hasAutoSaved);
-        console.log('user:', user);
-        console.log('user.email:', user?.email);
-        console.log('decision length:', decision.trim().length);
-        console.log('All conditions met?', showResults && !hasAutoSaved && user && user.email && decision.trim().length >= 10);
-      }
-
-      // Only save if we're showing results, haven't saved yet, and have a valid user
       if (showResults && !hasAutoSaved && user && user.email && decision.trim().length >= 10) {
-        if (__DEV__) console.log('🔄 Auto-saving decision...');
-
         try {
           const result = calculateDecision();
           const now = new Date();
           const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
 
+          const decisionId = Date.now();
           const newDecision = {
-            id: Date.now(),
+            id: decisionId,
             date: localDate,
             decision,
             recommendation: result.recommendation,
@@ -532,86 +470,22 @@ function MainApp() {
             mode: decisionMode
           };
 
-          if (__DEV__) {
-            console.log('New decision object:', newDecision);
-            console.log('Current completedDecisions count:', completedDecisions.length);
-          }
-
           const updated = [...completedDecisions, newDecision];
           setCompletedDecisions(updated);
+          setCurrentDecisionId(decisionId);
+          console.log('Auto-saved decision with ID:', decisionId);
 
-          if (__DEV__) console.log('Saving to storage for user:', user.email);
           await saveUserData(user.email, 'decisions', updated);
           setHasAutoSaved(true);
-
-          if (__DEV__) {
-            const saved = await loadUserData(user.email, 'decisions', []);
-            console.log('✅ Auto-saved! Total decisions:', saved.length);
-            console.log('Saved decisions:', saved);
-          }
         } catch (error) {
-          if (__DEV__) console.error('❌ Auto-save failed:', error);
-        }
-      } else {
-        if (__DEV__ && showResults) {
-          console.log('⚠️ Auto-save skipped - conditions not met');
-          if (hasAutoSaved) console.log('  → Already saved');
-          if (!user) console.log('  → No user');
-          if (!user?.email) console.log('  → No user email');
-          if (decision.trim().length < 10) console.log('  → Decision too short');
+          console.error('Error auto-saving decision:', error);
         }
       }
     };
 
     autoSaveDecision();
-  }, [showResults, hasAutoSaved, user?.email, completedDecisions, decision, category, isFavorite, journal, decisionMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showResults, hasAutoSaved, user?.email, decision, category, isFavorite, journal, decisionMode]); 
 
-  // CRITICAL FIX: Check onboarding based on Firebase auth state + user-specific key
-  useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      try {
-        // First check if there's a Firebase user logged in
-        const firebaseUser = firebaseAuthService.getCurrentUser();
-
-        if (firebaseUser) {
-          // User is logged in via Firebase - check if THEY completed onboarding
-          const userHasLaunchedKey = `hasLaunched_${firebaseUser.email}`;
-          const userHasLaunched = await AsyncStorage.getItem(userHasLaunchedKey);
-
-          if (userHasLaunched) {
-            // This user has completed onboarding before
-            setIsFirstLaunch(false);
-            if (__DEV__) console.log('✅ [App] User has completed onboarding:', firebaseUser.email);
-          } else {
-            // This Firebase user exists but never completed onboarding (edge case)
-            setIsFirstLaunch(false); // Skip onboarding if already authenticated
-            if (__DEV__) console.log('⚠️ [App] Authenticated user without onboarding flag, skipping onboarding');
-          }
-        } else {
-          // No Firebase user - check if ANY user has completed onboarding on this device
-          // (we still want first-time users to see onboarding)
-          const legacyHasLaunched = await AsyncStorage.getItem('hasLaunched');
-
-          if (legacyHasLaunched) {
-            // Device has been used before, but no user is logged in
-            setIsFirstLaunch(false);
-            if (__DEV__) console.log('✅ [App] Device has been used before, skipping onboarding');
-          } else {
-            // Brand new device - show onboarding
-            setIsFirstLaunch(true);
-            if (__DEV__) console.log('🆕 [App] First launch detected, showing onboarding');
-          }
-        }
-      } catch (error) {
-        console.error('❌ [App] Error checking onboarding status:', error);
-        setIsFirstLaunch(false); // Default to not showing onboarding on error
-      }
-    };
-
-    checkOnboardingStatus();
-  }, []); // Only run once on mount
-
-  // Reset calendar to current month when switching to tracker tab
   useEffect(() => {
     if (activeTab === 2) {
       const now = new Date();
@@ -620,124 +494,64 @@ function MainApp() {
     }
   }, [activeTab]);
 
-  // COMPREHENSIVE DEBUG LOGGING
-  if (__DEV__) {
-    console.log('🔍 [App] RENDER DEBUG:');
-    console.log('  showSplash:', showSplash);
-    console.log('  isFirstLaunch:', isFirstLaunch);
-    console.log('  authLoading:', authLoading);
-    console.log('  isAuthenticated:', isAuthenticated);
-    console.log('  user:', user?.email || 'null');
-  }
-
-  // Show splash screen
   if (showSplash) {
-    if (__DEV__) console.log('🎬 [App] Showing SPLASH screen');
-    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+        return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
-  // Premium Onboarding Flow - ONLY on first launch, never after logout
-  if (isFirstLaunch && !authLoading) {
-    if (__DEV__) console.log('📋 [App] Showing ONBOARDING screen');
-    return <OnboardingFlowNew onComplete={completeOnboarding} />;
-  }
-
-  // Auth loading state
-  if (authLoading) {
-    if (__DEV__) console.log('🔵 [App] Showing AUTH LOADING screen');
-    return (
-      <View style={styles.loadingContainer}>
-        <StatusBar style="dark" />
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={styles.loadingText}>Loading...</Text>
-
-        {/* EMERGENCY RESET BUTTON - DEV MODE ONLY */}
-        {__DEV__ && (
-          <TouchableOpacity
-            style={{
-              marginTop: 40,
-              padding: 16,
-              backgroundColor: '#ef4444',
-              borderRadius: 12,
-              marginHorizontal: 40,
-            }}
-            onPress={async () => {
-              Alert.alert(
-                '🚨 Emergency Reset',
-                'This will clear ALL app data and restart. Continue?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'RESET ALL',
-                    style: 'destructive',
-                    onPress: async () => {
-                      try {
-                        const allKeys = await AsyncStorage.getAllKeys();
-                        await AsyncStorage.multiRemove(allKeys);
-                        Alert.alert('✅ Reset Complete', 'App will reload now. Reload manually if needed.');
-                        setIsFirstLaunch(true);
-                        setShowSplash(false);
-                      } catch (error) {
-                        Alert.alert('Error', error.message);
-                      }
-                    },
-                  },
-                ]
-              );
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center', fontSize: 16 }}>
-              🚨 EMERGENCY RESET
-            </Text>
-            <Text style={{ color: 'white', textAlign: 'center', fontSize: 12, marginTop: 4 }}>
-              Clear all data and restart
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }
-
-  // Show auth gateway if not authenticated (after onboarding)
   if (!isAuthenticated) {
-    if (__DEV__) console.log('🔐 [App] Showing LOGIN screen (not authenticated)');
     return <StandaloneAuthScreen />;
   }
 
-  if (__DEV__) console.log('🟢 [App] Showing MAIN APP. activeTab:', activeTab, 'hasStarted:', hasStarted);
+  const handleTabPress = async (tabIndex, tabName) => {
+    setActiveTab(tabIndex);
 
-  const TabBar = () => (
-    <View style={styles.tabBar}>
-      {[
-        { icon: '🧠', label: 'Assistent', index: 0 },
-        { icon: '📋', label: 'Board', index: 1 },
-        { icon: '📊', label: 'Tracker', index: 2 },
-        { icon: '✨', label: 'Insights', index: 3 },
-        { icon: '⚙', label: 'Settings', index: 4 },
-      ].map(tab => (
-        <TouchableOpacity
-          key={tab.index}
-          style={styles.tabItem}
-          onPress={() => setActiveTab(tab.index)}
-        >
-          <Text style={[styles.tabIcon, activeTab === tab.index && styles.tabIconActive]}>
-            {tab.icon}
-          </Text>
-          <Text style={[styles.tabLabel, activeTab === tab.index && styles.tabLabelActive]}>
-            {tab.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+    if (settings.analytics) {
+      await logAnalyticsEvent('tab_changed', {
+        tab_name: tabName,
+        tab_index: tabIndex
+      });
+    }
+  };
 
-  // Board Tab
+  const TabBar = () => {
+    const tabs = [
+      { IconComponent: BrainIcon, label: 'Assistent', index: 0, activeColor: '#3B82F6' },
+      { IconComponent: BoardIcon, label: 'Board', index: 1, activeColor: '#3B82F6' },
+      { IconComponent: TrackerIcon, label: 'Tracker', index: 2, activeColor: '#10B981' },
+      { IconComponent: InsightsIcon, label: 'Insights', index: 3, activeColor: '#A855F7' },
+      { IconComponent: SettingsIcon, label: 'Settings', index: 4, activeColor: '#64748B' },
+    ];
+
+    return (
+      <View style={styles.tabBar}>
+        {tabs.map(tab => {
+          const isActive = activeTab === tab.index;
+          return (
+            <TouchableOpacity
+              key={tab.index}
+              style={styles.tabItem}
+              onPress={() => handleTabPress(tab.index, tab.label)}
+            >
+              <tab.IconComponent size={24} isActive={isActive} />
+              <Text style={[
+                styles.tabLabel,
+                isActive && { color: tab.activeColor, fontWeight: '600' }
+              ]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
+
   if (activeTab === 1) {
     return (
       <View style={styles.container}>
         <BoardView
           onNavigateToDecision={(card) => {
-            // Navigate to decision assistant with card context
+            
             setActiveTab(0);
             setDecision(card.title);
             setHasStarted(true);
@@ -751,16 +565,26 @@ function MainApp() {
     );
   }
 
-  // Tracker/Calendar Tab
   if (activeTab === 2) {
+    // Show Journal Dashboard if state is active
+    if (showJournalScreen) {
+      return (
+        <JournalDashboardScreen
+          navigation={{
+            goBack: () => setShowJournalScreen(false)
+          }}
+          completedDecisions={completedDecisions}
+        />
+      );
+    }
+
     const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
     const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-    // Convert Sunday=0 to Monday=0 (shift: Sunday becomes 6, Monday becomes 0)
+
     const firstDayIndex = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
-    // Debug: Log decision dates
     const decisionDates = new Set(
       completedDecisions
         .filter(d => {
@@ -769,26 +593,9 @@ function MainApp() {
         })
         .map(d => {
           const decisionDate = new Date(d.date);
-          return decisionDate.getDate(); // Just the day number (1-31)
+          return decisionDate.getDate();
         })
     );
-
-    if (__DEV__) {
-      console.log('=== TRACKER DEBUG ===');
-      console.log('Current Month/Year:', currentMonth, '(' + monthNames[currentMonth] + ')', currentYear);
-      console.log('Total decisions:', completedDecisions.length);
-      console.log('User:', user?.email);
-      console.log('Decisions this month (day numbers):', Array.from(decisionDates));
-      console.log('\nALL DECISIONS:');
-      completedDecisions.forEach((d, i) => {
-        const parsedDate = new Date(d.date);
-        console.log(`  ${i + 1}. "${d.decision.substring(0, 30)}" | Date: ${parsedDate.toLocaleDateString('de-DE')} | Month: ${parsedDate.getMonth()} | Day: ${parsedDate.getDate()}`);
-      });
-      console.log('\nFiltered for this month:', completedDecisions.filter(d => {
-        const decisionDate = new Date(d.date);
-        return decisionDate.getMonth() === currentMonth && decisionDate.getFullYear() === currentYear;
-      }).length, 'decisions');
-    }
 
     const emptyDays = Array.from({ length: firstDayIndex }, (_, i) => ({ isEmpty: true, key: `empty-${i}` }));
     const days = Array.from({ length: daysInMonth }, (_, i) => {
@@ -800,89 +607,107 @@ function MainApp() {
 
     return (
       <View style={styles.container}>
-        <StatusBar style={settings.darkMode ? "light" : "dark"} />
-        <View style={{ height: STATUS_BAR_HEIGHT, backgroundColor: '#f8fafc' }} />
+        <StatusBar style="light" />
+
+        {}
+        <LinearGradient
+          colors={['#3b82f6', '#2563eb']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.trackerHeader, { paddingTop: insets.top + 56 }]}
+        >
+          <View style={styles.trackerHeaderContent}>
+            <View style={styles.trackerTitleRow}>
+              <TrendingUpIcon size={32} color="#FFFFFF" strokeWidth={2.5} />
+              <Text style={styles.insightsTitle}>Dein Fortschritt</Text>
+            </View>
+
+            {}
+            <View style={styles.trackerStatsGrid}>
+              <View style={styles.trackerStatCard}>
+                <Text style={styles.trackerStatLabel}>Entscheidungen</Text>
+                <Text style={styles.trackerStatNumber}>{completedDecisions?.length || 0}</Text>
+              </View>
+              <View style={styles.trackerStatCard}>
+                <Text style={styles.trackerStatLabel}>Tage Streak</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  <Text style={styles.trackerStatNumber}>{getCurrentStreak()}</Text>
+                  <View style={styles.trackerFireBadge}>
+                    <Text style={styles.trackerFireEmoji}>🔥</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.trackerContainer}>
-            <Text style={styles.trackerTitle}>📊 Dein Fortschritt</Text>
-
-            <View style={styles.statsContainer}>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{completedDecisions.length}</Text>
-                <Text style={styles.statLabel}>Entscheidungen</Text>
-              </View>
-              <View style={[styles.statBox, styles.statBoxGreen]}>
-                <Text style={[styles.statNumber, styles.statNumberGreen]}>{getCurrentStreak()}</Text>
-                <Text style={styles.statLabel}>Tage Streak 🔥</Text>
-              </View>
-            </View>
-
-            <View style={styles.monthNavigation}>
-              <TouchableOpacity onPress={() => changeMonth('prev')} style={styles.monthButton}>
-                <Text style={styles.monthButtonText}>←</Text>
+          {}
+          <View style={styles.trackerCalendarCard}>
+            {}
+            <View style={styles.trackerMonthNav}>
+              <TouchableOpacity onPress={() => changeMonth('prev')} style={styles.trackerMonthButton}>
+                <Text style={styles.trackerMonthArrow}>←</Text>
               </TouchableOpacity>
-              <Text style={styles.monthTitle}>{monthNames[currentMonth]} {currentYear}</Text>
-              <TouchableOpacity onPress={() => changeMonth('next')} style={styles.monthButton}>
-                <Text style={styles.monthButtonText}>→</Text>
+              <Text style={styles.trackerMonthText}>{monthNames[currentMonth]} {currentYear}</Text>
+              <TouchableOpacity onPress={() => changeMonth('next')} style={styles.trackerMonthButton}>
+                <Text style={styles.trackerMonthArrow}>→</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.weekDaysContainer}>
+            {}
+            <View style={styles.trackerWeekDays}>
               {weekDays.map(day => (
-                <Text key={day} style={styles.weekDay}>{day}</Text>
+                <Text key={day} style={styles.trackerWeekDay}>{day}</Text>
               ))}
             </View>
 
-            <View style={styles.calendarGrid}>
+            {}
+            <View style={styles.trackerCalendarGrid}>
               {allDays.map((d, idx) => (
                 d.isEmpty ? (
-                  <View key={d.key} style={styles.emptyDay} />
+                  <View key={d.key} style={styles.trackerCalendarDay} />
                 ) : (
-                  <View
+                  <TouchableOpacity
                     key={d.day}
-                    style={[styles.calendarDay, d.hasDecision && styles.calendarDayActive]}
+                    style={[styles.trackerCalendarDay, d.hasDecision && styles.trackerCalendarDayActive]}
                   >
-                    <Text style={[styles.calendarDayText, d.hasDecision && styles.calendarDayTextActive]}>
+                    <Text style={[styles.trackerCalendarDayText, d.hasDecision && styles.trackerCalendarDayActiveText]}>
                       {d.day}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 )
               ))}
             </View>
+          </View>
 
-            {/* Debug Info */}
-            {__DEV__ && (
-              <View style={{ marginTop: 20, padding: 15, backgroundColor: '#fff3cd', borderRadius: 8 }}>
-                <Text style={{ fontSize: 12, color: '#856404', marginBottom: 5 }}>
-                  🔍 DEBUG INFO:
-                </Text>
-                <Text style={{ fontSize: 11, color: '#856404' }}>
-                  Gesamt: {completedDecisions.length} Entscheidungen
-                </Text>
-                <Text style={{ fontSize: 11, color: '#856404' }}>
-                  Dieser Monat: {decisionDates.size} Entscheidungen
-                </Text>
-                <Text style={{ fontSize: 11, color: '#856404' }}>
-                  Tage mit Entscheidungen: {Array.from(decisionDates).join(', ') || 'keine'}
-                </Text>
-                <Text style={{ fontSize: 11, color: '#856404' }}>
-                  User: {user?.email || 'nicht eingeloggt'}
-                </Text>
-              </View>
-            )}
+          {}
+          <View style={styles.trackerSummaryCard}>
+            <Text style={styles.trackerSummaryTitle}>Gesamt: {completedDecisions?.length || 0} Entscheidungen</Text>
+            <Text style={styles.trackerSummarySubtitle}>Dieser Monat: {decisionDates?.size || 0} Entscheidungen</Text>
           </View>
         </ScrollView>
+
+        {/* Floating Journal Button */}
+        <TouchableOpacity
+          style={styles.floatingJournalButton}
+          onPress={() => setShowJournalScreen(true)}
+        >
+          <Text style={styles.floatingJournalIcon}>📓</Text>
+          <Text style={styles.floatingJournalText}>Journal</Text>
+        </TouchableOpacity>
+
         <TabBar />
       </View>
     );
   }
 
-  // Insights Tab
   if (activeTab === 3) {
+    
     const totalDecisions = completedDecisions.length;
     const yesCount = completedDecisions.filter(d => d.recommendation === 'JA').length;
     const noCount = completedDecisions.filter(d => d.recommendation === 'NEIN').length;
@@ -892,116 +717,186 @@ function MainApp() {
 
     return (
       <View style={styles.container}>
-        <StatusBar style={settings.darkMode ? "light" : "dark"} />
-        <View style={{ height: STATUS_BAR_HEIGHT, backgroundColor: '#f8fafc' }} />
+        <StatusBar style="light" />
+
+        {}
+        <LinearGradient
+          colors={['#a855f7', '#9333ea']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.insightsHeader, { paddingTop: insets.top + 56 }]}
+        >
+          <View style={styles.insightsHeaderContent}>
+            <View style={styles.insightsTitleRow}>
+              <LightbulbIcon size={32} color="#FFFFFF" strokeWidth={2.5} />
+              <Text style={styles.insightsTitle}>Deine Insights</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.trackerContainer}>
-            <Text style={styles.trackerTitle}>✨ Deine Insights</Text>
-
-            {totalDecisions === 0 ? (
-              <View style={styles.emptyInsights}>
-                <Text style={styles.emptyInsightsIcon}>🎯</Text>
-                <Text style={styles.emptyInsightsTitle}>Noch keine Daten</Text>
-                <Text style={styles.emptyInsightsText}>
-                  Treffe deine erste Entscheidung, um Insights zu sehen!
-                </Text>
+          {totalDecisions === 0 ? (
+            
+            <View style={styles.insightsEmpty}>
+              {}
+              <View style={styles.lightbulbContainer}>
+                <View style={[styles.lightbulbPulse, styles.lightbulbPulse1]} />
+                <View style={[styles.lightbulbPulse, styles.lightbulbPulse2]} />
+                <View style={[styles.lightbulbPulse, styles.lightbulbPulse3]} />
+                <LightbulbIcon size={64} color="#A855F7" strokeWidth={1.5} />
               </View>
-            ) : (
-              <>
-                <View style={styles.statsContainer}>
-                  <View style={styles.statBox}>
-                    <Text style={styles.statNumber}>{totalDecisions}</Text>
-                    <Text style={styles.statLabel}>Entscheidungen</Text>
+
+              <Text style={styles.insightsEmptyTitle}>Noch keine Daten</Text>
+              <Text style={styles.insightsEmptyText}>
+                Treffe deine erste Entscheidung, um personalisierte Insights zu erhalten
+              </Text>
+
+              {}
+              <View style={styles.insightsPreviewGrid}>
+                <View style={styles.insightsPreviewCard}>
+                  <View style={styles.insightsPreviewIconBox}>
+                    <TrendingUpIcon size={20} color="#9333EA" strokeWidth={2.5} />
                   </View>
-                  <View style={[styles.statBox, styles.statBoxGreen]}>
-                    <Text style={[styles.statNumber, styles.statNumberGreen]}>{avgConfidence}%</Text>
-                    <Text style={styles.statLabel}>Ø Klarheit</Text>
-                  </View>
+                  <Text style={styles.insightsPreviewTitle}>Entscheidungsmuster</Text>
+                  <Text style={styles.insightsPreviewText}>
+                    Erkenne deine Trends und Präferenzen
+                  </Text>
                 </View>
 
-                <View style={styles.insightSection}>
-                  <Text style={styles.insightSectionTitle}>📊 Deine Balance</Text>
-                  <View style={styles.balanceContainer}>
-                    <View style={styles.balanceItem}>
-                      <Text style={styles.balanceLabel}>✅ JA</Text>
-                      <Text style={styles.balanceValue}>{yesCount}</Text>
-                      <View style={styles.balanceBar}>
-                        <View style={[styles.balanceBarFill, styles.balanceBarGreen, {
-                          width: `${totalDecisions > 0 ? (yesCount / totalDecisions) * 100 : 0}%`
-                        }]} />
-                      </View>
+                <View style={styles.insightsPreviewCard}>
+                  <View style={styles.insightsPreviewIconBox}>
+                    <TargetIcon size={20} color="#9333EA" />
+                  </View>
+                  <Text style={styles.insightsPreviewTitle}>Erfolgsquote</Text>
+                  <Text style={styles.insightsPreviewText}>
+                    Wie oft entscheidest du dich für "Ja"?
+                  </Text>
+                </View>
+
+                <View style={styles.insightsPreviewCard}>
+                  <View style={styles.insightsPreviewIconBox}>
+                    <CalendarIcon size={20} color="#9333EA" />
+                  </View>
+                  <Text style={styles.insightsPreviewTitle}>Zeitanalyse</Text>
+                  <Text style={styles.insightsPreviewText}>
+                    Wann triffst du die besten Entscheidungen?
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ) : (
+            
+            <>
+              {}
+              <View style={styles.insightsStatsGrid}>
+                <View style={styles.insightsStatCard}>
+                  <Text style={styles.insightsStatNumber}>{totalDecisions}</Text>
+                  <Text style={styles.insightsStatLabel}>Entscheidungen</Text>
+                </View>
+                <View style={styles.insightsStatCard}>
+                  <Text style={[styles.insightsStatNumber, { color: '#9333EA' }]}>{avgConfidence}%</Text>
+                  <Text style={styles.insightsStatLabel}>Ø Klarheit</Text>
+                </View>
+              </View>
+
+              {}
+              <View style={styles.insightsSection}>
+                <Text style={styles.insightsSectionTitle}>Deine Balance</Text>
+                <View style={styles.insightsBalanceContainer}>
+                  <View style={styles.insightsBalanceItem}>
+                    <View style={styles.insightsBalanceHeader}>
+                      <Text style={styles.insightsBalanceLabel}>JA</Text>
+                      <Text style={styles.insightsBalanceValue}>{yesCount}</Text>
                     </View>
-                    <View style={styles.balanceItem}>
-                      <Text style={styles.balanceLabel}>❌ NEIN</Text>
-                      <Text style={styles.balanceValue}>{noCount}</Text>
-                      <View style={styles.balanceBar}>
-                        <View style={[styles.balanceBarFill, styles.balanceBarRed, {
-                          width: `${totalDecisions > 0 ? (noCount / totalDecisions) * 100 : 0}%`
-                        }]} />
-                      </View>
+                    <View style={styles.insightsBalanceBar}>
+                      <View style={[styles.insightsBalanceBarFill, styles.insightsBalanceBarGreen, {
+                        width: `${totalDecisions > 0 ? (yesCount / totalDecisions) * 100 : 0}%`
+                      }]} />
+                    </View>
+                  </View>
+                  <View style={styles.insightsBalanceItem}>
+                    <View style={styles.insightsBalanceHeader}>
+                      <Text style={styles.insightsBalanceLabel}>NEIN</Text>
+                      <Text style={styles.insightsBalanceValue}>{noCount}</Text>
+                    </View>
+                    <View style={styles.insightsBalanceBar}>
+                      <View style={[styles.insightsBalanceBarFill, styles.insightsBalanceBarPurple, {
+                        width: `${totalDecisions > 0 ? (noCount / totalDecisions) * 100 : 0}%`
+                      }]} />
                     </View>
                   </View>
                 </View>
+              </View>
 
-                <View style={styles.insightSection}>
-                  <Text style={styles.insightSectionTitle}>🎯 Erkenntnisse</Text>
-                  {yesCount > noCount * 2 && (
-                    <View style={styles.insightCard}>
-                      <Text style={styles.insightCardIcon}>🚀</Text>
-                      <Text style={styles.insightCardText}>
-                        Du bist risikofreudig! {Math.round((yesCount / totalDecisions) * 100)}% deiner Entscheidungen waren positiv.
-                      </Text>
+              {}
+              <View style={styles.insightsSection}>
+                <Text style={styles.insightsSectionTitle}>Erkenntnisse</Text>
+                {yesCount > noCount * 2 && (
+                  <View style={styles.insightsInsightCard}>
+                    <View style={styles.insightsInsightIconBox}>
+                      <Text style={styles.insightsInsightIcon}>🚀</Text>
                     </View>
-                  )}
-                  {noCount > yesCount * 2 && (
-                    <View style={styles.insightCard}>
-                      <Text style={styles.insightCardIcon}>🛡️</Text>
-                      <Text style={styles.insightCardText}>
-                        Du bist vorsichtig! {Math.round((noCount / totalDecisions) * 100)}% deiner Entscheidungen waren negativ.
-                      </Text>
+                    <Text style={styles.insightsInsightText}>
+                      Du bist risikofreudig! {Math.round((yesCount / totalDecisions) * 100)}% deiner Entscheidungen waren positiv.
+                    </Text>
+                  </View>
+                )}
+                {noCount > yesCount * 2 && (
+                  <View style={styles.insightsInsightCard}>
+                    <View style={styles.insightsInsightIconBox}>
+                      <Text style={styles.insightsInsightIcon}>🛡️</Text>
                     </View>
-                  )}
-                  {avgConfidence >= 70 && (
-                    <View style={styles.insightCard}>
-                      <Text style={styles.insightCardIcon}>💪</Text>
-                      <Text style={styles.insightCardText}>
-                        Starke Klarheit! Deine durchschnittliche Konfidenz liegt bei {avgConfidence}%.
-                      </Text>
+                    <Text style={styles.insightsInsightText}>
+                      Du bist vorsichtig! {Math.round((noCount / totalDecisions) * 100)}% deiner Entscheidungen waren negativ.
+                    </Text>
+                  </View>
+                )}
+                {avgConfidence >= 70 && (
+                  <View style={styles.insightsInsightCard}>
+                    <View style={styles.insightsInsightIconBox}>
+                      <Text style={styles.insightsInsightIcon}>💪</Text>
                     </View>
-                  )}
-                  {avgConfidence < 50 && (
-                    <View style={styles.insightCard}>
-                      <Text style={styles.insightCardIcon}>🤔</Text>
-                      <Text style={styles.insightCardText}>
-                        Unsicherheit ist normal. Nimm dir mehr Zeit für wichtige Entscheidungen.
-                      </Text>
+                    <Text style={styles.insightsInsightText}>
+                      Starke Klarheit! Deine durchschnittliche Konfidenz liegt bei {avgConfidence}%.
+                    </Text>
+                  </View>
+                )}
+                {avgConfidence < 50 && (
+                  <View style={styles.insightsInsightCard}>
+                    <View style={styles.insightsInsightIconBox}>
+                      <Text style={styles.insightsInsightIcon}>🤔</Text>
                     </View>
-                  )}
-                  {Math.abs(yesCount - noCount) <= 2 && totalDecisions >= 5 && (
-                    <View style={styles.insightCard}>
-                      <Text style={styles.insightCardIcon}>⚖️</Text>
-                      <Text style={styles.insightCardText}>
-                        Perfekte Balance! Du wägst Chancen und Risiken fair ab.
-                      </Text>
+                    <Text style={styles.insightsInsightText}>
+                      Unsicherheit ist normal. Nimm dir mehr Zeit für wichtige Entscheidungen.
+                    </Text>
+                  </View>
+                )}
+                {Math.abs(yesCount - noCount) <= 2 && totalDecisions >= 5 && (
+                  <View style={styles.insightsInsightCard}>
+                    <View style={styles.insightsInsightIconBox}>
+                      <Text style={styles.insightsInsightIcon}>⚖️</Text>
                     </View>
-                  )}
-                </View>
-              </>
-            )}
-          </View>
+                    <Text style={styles.insightsInsightText}>
+                      Perfekte Balance! Du wägst Chancen und Risiken fair ab.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
         </ScrollView>
+
         <TabBar />
       </View>
     );
   }
 
-  // Settings Tab (Tab 4 - Share functionality now integrated here)
   if (activeTab === 4) {
-    // Show AccountScreen if requested
+    
     if (showAccountScreen) {
       return (
         <View style={styles.container}>
@@ -1014,7 +909,7 @@ function MainApp() {
     return (
       <View style={styles.container}>
         <StatusBar style={settings.darkMode ? "light" : "dark"} />
-        <View style={{ height: STATUS_BAR_HEIGHT, backgroundColor: '#f8fafc' }} />
+        <View style={{ height: insets.top, backgroundColor: '#f8fafc' }} />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={{ paddingBottom: 100 }}
@@ -1041,51 +936,6 @@ function MainApp() {
                   />
                 </View>
               </View>
-
-              <Text style={styles.settingInfo}>
-                💡 Dark Mode kommt in einem zukünftigen Update
-              </Text>
-            </View>
-
-            <View style={styles.settingsSection}>
-              <Text style={styles.sectionTitle}>ÜBER</Text>
-              <View style={styles.settingsGroup}>
-                <TouchableOpacity
-                  style={styles.settingButton}
-                  onPress={() => Alert.alert('Tipps', 'Nutze den Vollständigen Modus für wichtige Entscheidungen und den Schnell-Modus für alltägliche Entscheidungen.')}
-                >
-                  <Text style={styles.settingButtonText}>Tipps für die Nutzung</Text>
-                  <Text style={styles.settingArrow}>→</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.settingButton}
-                  onPress={() => Alert.alert('FAQ', 'Wie funktioniert die App?\n\nDie App analysiert deine Entscheidungen basierend auf wissenschaftlichen Methoden und gibt dir eine fundierte Empfehlung.')}
-                >
-                  <Text style={styles.settingButtonText}>Häufig Gestellte Fragen</Text>
-                  <Text style={styles.settingArrow}>→</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.settingButton}
-                  onPress={() => Linking.openURL('mailto:vayze.app@gmail.com?subject=Vayze%20Feedback&body=Hallo%20Vayze-Team,%0A%0A')}
-                >
-                  <Text style={styles.settingButtonText}>Kontakt</Text>
-                  <Text style={styles.settingArrow}>→</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.settingButton}
-                  onPress={handleShare}
-                >
-                  <Text style={styles.settingButtonText}>📤 App teilen</Text>
-                  <Text style={styles.settingArrow}>→</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.settingButton}
-                  onPress={() => Alert.alert('Version', 'Entscheidungs-Assistent v1.0.0')}
-                >
-                  <Text style={styles.settingButtonText}>Bewerten und unterstützen</Text>
-                  <Text style={styles.settingBadge}>V 1.0.0</Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
             <View style={styles.settingsSection}>
@@ -1096,7 +946,7 @@ function MainApp() {
                   onPress={handleExportData}
                 >
                   <Text style={styles.settingButtonText}>Daten exportieren</Text>
-                  <Text style={styles.settingArrow}>📥</Text>
+                  <Text style={styles.settingArrow}>→</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.settingButton, styles.dangerButton]}
@@ -1108,13 +958,12 @@ function MainApp() {
               </View>
             </View>
 
-            {/* Privacy & Legal Section */}
             <View style={styles.settingsSection}>
               <Text style={styles.sectionTitle}>RECHTLICHES</Text>
               <View style={styles.settingsGroup}>
                 <TouchableOpacity
                   style={styles.settingButton}
-                  onPress={() => Linking.openURL('https://samuelstoeberl-prog.github.io/Vayze-Legal/index.html#privacy')}
+                  onPress={() => Linking.openURL('https://vayze.app/privacy')}
                   accessibilityLabel="Datenschutzerklärung öffnen"
                   accessibilityHint="Öffnet die Datenschutzerklärung in deinem Browser"
                   accessibilityRole="link"
@@ -1124,7 +973,7 @@ function MainApp() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.settingButton}
-                  onPress={() => Linking.openURL('https://samuelstoeberl-prog.github.io/Vayze-Legal/index.html#terms')}
+                  onPress={() => Linking.openURL('https://vayze.app/terms')}
                   accessibilityLabel="Nutzungsbedingungen öffnen"
                   accessibilityHint="Öffnet die Nutzungsbedingungen in deinem Browser"
                   accessibilityRole="link"
@@ -1140,12 +989,12 @@ function MainApp() {
                   accessibilityRole="link"
                 >
                   <Text style={styles.settingButtonText}>Support kontaktieren</Text>
-                  <Text style={styles.settingArrow}>✉️</Text>
+                  <Text style={styles.settingArrow}>→</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Account Section */}
+            {}
             <View style={styles.settingsSection}>
               <Text style={styles.sectionTitle}>KONTO</Text>
               <View style={styles.settingsGroup}>
@@ -1169,7 +1018,7 @@ function MainApp() {
                   accessibilityRole="button"
                 >
                   <Text style={styles.dangerButtonText}>Abmelden</Text>
-                  <Text style={styles.settingArrow}>👋</Text>
+                  <Text style={styles.settingArrow}>→</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1180,7 +1029,6 @@ function MainApp() {
     );
   }
 
-  // Main Assistant Tab (Tab 0 - default)
   if (activeTab === 0) {
     if (!hasStarted) {
       return (
@@ -1191,7 +1039,7 @@ function MainApp() {
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.startContainer}>
+          <View style={[styles.startContainer, { paddingTop: insets.top + 24 }]}>
             <Text style={styles.startEmoji}>🧠</Text>
             <Text style={styles.startTitle}>Entscheidungs-Assistent</Text>
             <Text style={styles.startSubtitle}>Treffe heute eine bessere Entscheidung – klar und durchdacht.</Text>
@@ -1242,7 +1090,9 @@ function MainApp() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: decisionMode === 'full' }}
               >
-                <Text style={styles.modeEmoji}>🎯</Text>
+                <View style={styles.modeIconContainer}>
+                  <VollstaendigIcon size={60} active={decisionMode === 'full'} />
+                </View>
                 <Text style={styles.modeTitle}>Vollständig</Text>
                 <Text style={styles.modeSubtitle}>6 Schritte</Text>
               </TouchableOpacity>
@@ -1253,7 +1103,9 @@ function MainApp() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: decisionMode === 'quick' }}
               >
-                <Text style={styles.modeEmoji}>⚡</Text>
+                <View style={styles.modeIconContainer}>
+                  <SchnellIcon size={60} active={decisionMode === 'quick'} />
+                </View>
                 <Text style={styles.modeTitle}>Schnell</Text>
                 <Text style={styles.modeSubtitle}>2 Schritte</Text>
               </TouchableOpacity>
@@ -1278,12 +1130,12 @@ function MainApp() {
                       style={[styles.categoryButton, isSelected && styles.categoryButtonActive]}
                       onPress={() => {
                         if (isSelected) {
-                          // Kategorie entfernen, aber mindestens eine muss ausgewählt bleiben
+                          
                           if (category.length > 1) {
                             setCategory(category.filter(c => c !== cat));
                           }
                         } else {
-                          // Kategorie hinzufügen
+                          
                           setCategory([...category, cat]);
                         }
                       }}
@@ -1396,7 +1248,7 @@ function MainApp() {
               <Text style={styles.resultMessage}>{message}</Text>
             </View>
 
-            {/* Explainability - Warum diese Empfehlung? */}
+            {}
             {result.factors && result.factors.length > 0 && (
               <View style={styles.explainabilityBox}>
                 <Text style={styles.explainabilityTitle}>💡 Warum {result.recommendation}?</Text>
@@ -1428,7 +1280,7 @@ function MainApp() {
               <Text style={styles.journalHint}>Halte fest, was du aus dieser Entscheidung mitnimmst.</Text>
             </View>
 
-            {/* Next Steps CTA */}
+            {}
             {!showNextSteps && (
               <TouchableOpacity
                 style={styles.nextStepsCTA}
@@ -1439,7 +1291,7 @@ function MainApp() {
               </TouchableOpacity>
             )}
 
-            {/* Next Steps Form */}
+            {}
             {showNextSteps && (
               <View style={styles.nextStepsBox}>
                 <Text style={styles.nextStepsTitle}>🎯 Kleine nächste Schritte</Text>
@@ -1467,11 +1319,29 @@ function MainApp() {
                 <TouchableOpacity
                   style={styles.addToBoardButton}
                   onPress={() => {
-                    // Filter non-empty steps
+
                     const validSteps = nextSteps.filter(s => s.trim().length > 0);
                     if (validSteps.length > 0) {
-                      // Add each step as a task card to the board
+
+                      console.log('=== Next Steps Debug ===');
+                      console.log('Current Decision ID:', currentDecisionId);
+                      console.log('Valid steps:', validSteps.length);
+                      console.log('Decision text:', decision.substring(0, 30));
+
+                      if (!currentDecisionId) {
+                        Alert.alert(
+                          'Fehler',
+                          `Entscheidungs-ID nicht gefunden.\nBitte speichere die Entscheidung zuerst mit dem "Entscheidung speichern ✓" Button.\n\nDebug: ID=${currentDecisionId}`
+                        );
+                        return;
+                      }
+
                       validSteps.forEach((step, index) => {
+                        console.log('Adding card to board:', {
+                          title: step,
+                          linkedDecisionId: currentDecisionId,
+                          decisionTitle: decision.substring(0, 30)
+                        });
                         addCard({
                           title: step,
                           description: `Aus Entscheidung: "${decision.substring(0, 50)}${decision.length > 50 ? '...' : ''}"`,
@@ -1480,7 +1350,7 @@ function MainApp() {
                           category: 'todo',
                           status: 'todo',
                           tags: ['aus-entscheidung'],
-                          linkedDecisionId: Date.now(), // Link to decision
+                          linkedDecisionId: currentDecisionId,
                         });
                       });
 
@@ -1498,7 +1368,7 @@ function MainApp() {
                           { text: 'OK' },
                         ]
                       );
-                      setNextSteps(['', '', '']); // Reset form
+                      setNextSteps(['', '', '']);
                     } else {
                       Alert.alert('Keine Schritte', 'Bitte gib mindestens einen Schritt ein.');
                     }
@@ -1518,7 +1388,13 @@ function MainApp() {
               </View>
             )}
 
-            <TouchableOpacity style={styles.resetButton} onPress={resetDecisionState}>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={async () => {
+                await resetDecisionState();
+                setActiveTab(0);
+              }}
+            >
               <Text style={styles.resetButtonText}>Neue Entscheidung analysieren 🔄</Text>
             </TouchableOpacity>
           </View>
@@ -1676,7 +1552,6 @@ function MainApp() {
   );
   }
 
-  // If no tab matches, return null (should never happen)
   return null;
 }
 
@@ -1688,7 +1563,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  // Onboarding Styles
+  
   onboardingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1770,7 +1645,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
   },
-  // Tab Bar
+  
   tabBar: {
     flexDirection: 'row',
     height: 80,
@@ -1799,7 +1674,7 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontWeight: '600',
   },
-  // Tracker
+  
   trackerContainer: {
     padding: 24,
   },
@@ -1898,7 +1773,7 @@ const styles = StyleSheet.create({
   calendarDayTextActive: {
     color: 'white',
   },
-  // Share
+  
   shareContainer: {
     padding: 24,
   },
@@ -1956,7 +1831,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1f2937',
   },
-  // Settings
+  
   settingsContainer: {
     padding: 24,
   },
@@ -2028,10 +1903,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  // Start Screen
+  
   startContainer: {
     padding: 24,
-    paddingTop: 48,
+    // paddingTop wird dynamisch gesetzt
   },
   startEmoji: {
     fontSize: 64,
@@ -2121,9 +1996,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#eff6ff',
     borderColor: '#3b82f6',
   },
-  modeEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
+  modeIconContainer: {
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modeTitle: {
     fontSize: 16,
@@ -2224,32 +2100,34 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  // Results
+  
   resultsContainer: {
-    padding: 24,
+    padding: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
   },
   resultsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   resultsTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1f2937',
   },
   favoriteIcon: {
-    fontSize: 32,
+    fontSize: 28,
   },
   resultsTags: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 16,
+    flexWrap: 'wrap',
   },
   resultTag: {
     backgroundColor: '#dbeafe',
-    paddingVertical: 4,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
   },
@@ -2260,7 +2138,7 @@ const styles = StyleSheet.create({
   },
   resultTagSecondary: {
     backgroundColor: '#f3f4f6',
-    paddingVertical: 4,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
   },
@@ -2271,20 +2149,22 @@ const styles = StyleSheet.create({
   },
   decisionBox: {
     backgroundColor: '#dbeafe',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
   },
   decisionBoxText: {
     fontSize: 14,
     color: '#1f2937',
     fontWeight: '500',
+    lineHeight: 20,
   },
   resultCard: {
-    padding: 32,
-    borderRadius: 24,
+    padding: 24,
+    paddingVertical: 32,
+    borderRadius: 20,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   resultCardGreen: {
     backgroundColor: '#10b981',
@@ -2296,49 +2176,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#f59e0b',
   },
   resultEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 56,
+    marginBottom: 12,
   },
   resultRecommendation: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: 'bold',
     color: 'white',
     marginBottom: 12,
   },
   resultBadge: {
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingVertical: 8,
-    paddingHorizontal: 24,
+    paddingVertical: 6,
+    paddingHorizontal: 20,
     borderRadius: 20,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   resultBadgeText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
   resultMessage: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
+    paddingHorizontal: 8,
   },
   journalBox: {
     backgroundColor: '#f3f4f6',
-    padding: 24,
-    borderRadius: 16,
-    marginBottom: 24,
+    padding: 18,
+    borderRadius: 12,
+    marginBottom: 20,
   },
   journalTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   journalInput: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#e5e7eb',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 12,
     fontSize: 14,
     minHeight: 80,
@@ -2346,59 +2227,59 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   journalHint: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#9ca3af',
-    marginTop: 8,
+    marginTop: 6,
   },
   nextStepsCTA: {
     backgroundColor: '#f0f9ff',
     borderWidth: 1.5,
     borderColor: '#3b82f6',
     borderStyle: 'dashed',
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
-    marginVertical: 16,
+    marginVertical: 12,
   },
   nextStepsCTAText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#3b82f6',
     marginBottom: 4,
   },
   nextStepsCTAHint: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#64748b',
   },
   nextStepsBox: {
     backgroundColor: '#fafafa',
-    padding: 20,
-    borderRadius: 16,
-    marginVertical: 16,
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
   nextStepsTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: 4,
   },
   nextStepsSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748b',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   nextStepRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 10,
+    marginBottom: 10,
+    gap: 8,
   },
   nextStepNumber: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#6b7280',
-    width: 20,
+    width: 18,
   },
   nextStepInput: {
     flex: 1,
@@ -2406,9 +2287,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: 13,
     color: '#1f2937',
   },
   addToBoardButton: {
@@ -2416,35 +2297,36 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   addToBoardButtonText: {
     color: 'white',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
   },
   skipButton: {
-    padding: 12,
+    padding: 10,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   skipButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6b7280',
     fontWeight: '500',
   },
   resetButton: {
     backgroundColor: '#1f2937',
-    padding: 20,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
+    marginTop: 8,
   },
   resetButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
   },
-  // Steps
+  
   stepContainer: {
     padding: 24,
   },
@@ -2487,26 +2369,26 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     fontWeight: '500',
   },
-  // Explainability Styles
+  
   explainabilityBox: {
     backgroundColor: '#f8fafc',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
-    borderLeftWidth: 4,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderLeftWidth: 3,
     borderLeftColor: '#3b82f6',
   },
   explainabilityTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   factorItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
+    alignItems: 'flex-start',
+    padding: 10,
+    borderRadius: 10,
     marginBottom: 8,
   },
   factorPositive: {
@@ -2522,16 +2404,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef3c7',
   },
   factorIcon: {
-    fontSize: 20,
-    marginRight: 12,
+    fontSize: 18,
+    marginRight: 10,
+    marginTop: 2,
   },
   factorText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: '#1f2937',
+    lineHeight: 19,
     fontWeight: '500',
   },
-  // Insights Tab Styles
+  
   emptyInsights: {
     alignItems: 'center',
     paddingVertical: 60,
@@ -2709,13 +2593,390 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
   },
+
+  trackerHeader: {
+    // paddingTop wird dynamisch gesetzt
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+  },
+  trackerHeaderContent: {
+    gap: 24,
+  },
+  trackerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  trackerStatsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  trackerStatCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)',
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  trackerStatLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+  },
+  trackerStatNumber: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  trackerFireBadge: {
+    backgroundColor: 'rgba(251, 146, 60, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  trackerFireEmoji: {
+    fontSize: 16,
+  },
+  trackerCalendarCard: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    marginHorizontal: 16,
+    marginTop: -20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  trackerMonthNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  trackerMonthButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackerMonthArrow: {
+    fontSize: 18,
+    color: '#64748b',
+  },
+  trackerMonthText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0f172a',
+  },
+  trackerWeekDays: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 4,
+  },
+  trackerWeekDay: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94a3b8',
+    textAlign: 'center',
+  },
+  trackerCalendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  trackerCalendarDay: {
+    width: '13.5%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  trackerCalendarDayText: {
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  trackerCalendarDayActive: {
+    backgroundColor: '#3b82f6',
+  },
+  trackerCalendarDayActiveText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  trackerSummaryCard: {
+    backgroundColor: '#dbeafe',
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  trackerSummaryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  trackerSummarySubtitle: {
+    fontSize: 14,
+    color: '#3b82f6',
+  },
+  floatingJournalButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    backgroundColor: '#3b82f6',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  floatingJournalIcon: {
+    fontSize: 20,
+  },
+  floatingJournalText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  insightsHeader: {
+    // paddingTop wird dynamisch gesetzt
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+  },
+  insightsHeaderContent: {
+    gap: 24,
+  },
+  insightsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  insightsTitle: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+
+  insightsEmpty: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  lightbulbContainer: {
+    width: 120,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    position: 'relative',
+  },
+  lightbulbPulse: {
+    position: 'absolute',
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: '#A855F7',
+  },
+  lightbulbPulse1: {
+    width: 80,
+    height: 80,
+    opacity: 0.3,
+  },
+  lightbulbPulse2: {
+    width: 100,
+    height: 100,
+    opacity: 0.2,
+  },
+  lightbulbPulse3: {
+    width: 120,
+    height: 120,
+    opacity: 0.1,
+  },
+  insightsEmptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  insightsEmptyText: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 48,
+    paddingHorizontal: 24,
+    lineHeight: 24,
+  },
+
+  insightsPreviewGrid: {
+    width: '100%',
+    gap: 16,
+  },
+  insightsPreviewCard: {
+    backgroundColor: '#faf5ff',
+    borderWidth: 1,
+    borderColor: '#e9d5ff',
+    borderRadius: 16,
+    padding: 20,
+  },
+  insightsPreviewIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f3e8ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  insightsPreviewTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#6b21a8',
+    marginBottom: 6,
+  },
+  insightsPreviewText: {
+    fontSize: 14,
+    color: '#9333ea',
+    lineHeight: 20,
+  },
+
+  insightsStatsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 24,
+  },
+  insightsStatCard: {
+    flex: 1,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  insightsStatNumber: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+  insightsStatLabel: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+
+  insightsSection: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  insightsSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0f172a',
+    marginBottom: 16,
+  },
+
+  insightsBalanceContainer: {
+    gap: 16,
+  },
+  insightsBalanceItem: {
+    gap: 8,
+  },
+  insightsBalanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  insightsBalanceLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  insightsBalanceValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#0f172a',
+  },
+  insightsBalanceBar: {
+    height: 8,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  insightsBalanceBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  insightsBalanceBarGreen: {
+    backgroundColor: '#10b981',
+  },
+  insightsBalanceBarPurple: {
+    backgroundColor: '#9333ea',
+  },
+
+  insightsInsightCard: {
+    flexDirection: 'row',
+    gap: 16,
+    padding: 16,
+    backgroundColor: '#faf5ff',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e9d5ff',
+  },
+  insightsInsightIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f3e8ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  insightsInsightIcon: {
+    fontSize: 24,
+  },
+  insightsInsightText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#6b21a8',
+    lineHeight: 20,
+    alignSelf: 'center',
+  },
 });
 
-// Root component with AuthProvider
 export default function App() {
   return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

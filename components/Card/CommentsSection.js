@@ -1,7 +1,3 @@
-/**
- * Comments Section - Discussion and notes on cards
- */
-
 import React, { useState } from 'react';
 import {
   View,

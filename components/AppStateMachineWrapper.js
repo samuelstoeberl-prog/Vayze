@@ -1,10 +1,3 @@
-/**
- * App State Machine Wrapper
- *
- * This component manages the entire app flow using an explicit state machine.
- * NO INFINITE LOADING - Every state has a timeout and exit path.
- */
-
 import React, { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppStateMachine, APP_STATES } from '../hooks/useAppStateMachine';
@@ -18,7 +11,6 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const stateMachine = useAppStateMachine();
 
-  // Splash → Onboarding Check
   useEffect(() => {
     if (stateMachine.currentState === APP_STATES.SPLASH) {
       const timer = setTimeout(() => {
@@ -29,7 +21,6 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
     }
   }, [stateMachine.currentState]);
 
-  // Auth Check → Determine auth status
   useEffect(() => {
     if (stateMachine.currentState === APP_STATES.AUTH_CHECK) {
       if (authLoading) {
@@ -42,22 +33,17 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
     }
   }, [stateMachine.currentState, authLoading, isAuthenticated, user]);
 
-  // Authenticated → Load data → Main App
   useEffect(() => {
     if (stateMachine.currentState === APP_STATES.AUTHENTICATED) {
       const loadData = async () => {
         try {
-          if (__DEV__) console.log('📊 [AppWrapper] Loading user data...');
-
-          // Call parent's data loading function
-          if (onLoadUserData) {
+                    if (onLoadUserData) {
             await onLoadUserData(user);
           }
 
-          if (__DEV__) console.log('✅ [AppWrapper] Data loaded, transitioning to main app');
-          stateMachine.transition(APP_STATES.MAIN_APP);
+                    stateMachine.transition(APP_STATES.MAIN_APP);
         } catch (error) {
-          console.error('❌ [AppWrapper] Failed to load data:', error);
+          
           stateMachine.setError({
             type: 'DATA_LOAD',
             message: error.message || 'Failed to load user data',
@@ -71,15 +57,13 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
     }
   }, [stateMachine.currentState, isAuthenticated, user]);
 
-  // RENDER based on state machine
   switch (stateMachine.currentState) {
     case APP_STATES.INITIAL:
     case APP_STATES.SPLASH:
       return (
         <SplashScreen
           onFinish={() => {
-            if (__DEV__) console.log('🎬 [AppWrapper] Splash finished');
-            stateMachine.checkOnboarding();
+                        stateMachine.checkOnboarding();
           }}
         />
       );
@@ -91,12 +75,10 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
           timeout={3000}
           showEscapeAfter={2000}
           onTimeout={() => {
-            if (__DEV__) console.warn('⏰ [AppWrapper] Onboarding check timeout');
-            stateMachine.transition(APP_STATES.AUTH_CHECK);
+                        stateMachine.transition(APP_STATES.AUTH_CHECK);
           }}
           onManualEscape={() => {
-            if (__DEV__) console.log('🚪 [AppWrapper] Manual escape from onboarding check');
-            stateMachine.transition(APP_STATES.AUTH_CHECK);
+                        stateMachine.transition(APP_STATES.AUTH_CHECK);
           }}
         />
       );
@@ -105,8 +87,7 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
       return (
         <OnboardingFlowNew
           onComplete={(data) => {
-            if (__DEV__) console.log('✅ [AppWrapper] Onboarding completed');
-            stateMachine.completeOnboarding(data);
+                        stateMachine.completeOnboarding(data);
           }}
         />
       );
@@ -118,12 +99,10 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
           timeout={1000}
           showEscapeAfter={800}
           onTimeout={() => {
-            if (__DEV__) console.log('⏰ [AppWrapper] Onboarding complete timeout');
-            stateMachine.transition(APP_STATES.UNAUTHENTICATED);
+                        stateMachine.transition(APP_STATES.UNAUTHENTICATED);
           }}
           onManualEscape={() => {
-            if (__DEV__) console.log('🚪 [AppWrapper] Manual escape from onboarding complete');
-            stateMachine.transition(APP_STATES.UNAUTHENTICATED);
+                        stateMachine.transition(APP_STATES.UNAUTHENTICATED);
           }}
         />
       );
@@ -135,12 +114,10 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
           timeout={5000}
           showEscapeAfter={3000}
           onTimeout={() => {
-            if (__DEV__) console.warn('⏰ [AppWrapper] Auth check timeout');
-            stateMachine.transition(APP_STATES.UNAUTHENTICATED);
+                        stateMachine.transition(APP_STATES.UNAUTHENTICATED);
           }}
           onManualEscape={() => {
-            if (__DEV__) console.log('🚪 [AppWrapper] Manual escape from auth check');
-            stateMachine.hardReset();
+                        stateMachine.hardReset();
           }}
         />
       );
@@ -152,8 +129,7 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
           timeout={10000}
           showEscapeAfter={5000}
           onTimeout={() => {
-            if (__DEV__) console.error('⏰ [AppWrapper] Auth loading timeout');
-            stateMachine.setError({
+                        stateMachine.setError({
               type: 'TIMEOUT',
               message: 'Authentication timed out',
               from: APP_STATES.AUTH_LOADING,
@@ -161,8 +137,7 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
             stateMachine.transition(APP_STATES.ERROR);
           }}
           onManualEscape={() => {
-            if (__DEV__) console.log('🚪 [AppWrapper] Manual escape from auth loading');
-            stateMachine.hardReset();
+                        stateMachine.hardReset();
           }}
         />
       );
@@ -177,13 +152,10 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
           timeout={5000}
           showEscapeAfter={3000}
           onTimeout={() => {
-            if (__DEV__) console.error('⏰ [AppWrapper] Data load timeout');
-            // Even if timeout, try to show app anyway
-            stateMachine.transition(APP_STATES.MAIN_APP);
+                        stateMachine.transition(APP_STATES.MAIN_APP);
           }}
           onManualEscape={() => {
-            if (__DEV__) console.log('🚪 [AppWrapper] Manual escape from data load');
-            stateMachine.transition(APP_STATES.MAIN_APP);
+                        stateMachine.transition(APP_STATES.MAIN_APP);
           }}
         />
       );
@@ -194,29 +166,24 @@ const AppStateMachineWrapper = ({ children, onLoadUserData }) => {
         <ErrorScreen
           error={stateMachine.error}
           onRetry={() => {
-            if (__DEV__) console.log('🔄 [AppWrapper] Retrying...');
-            stateMachine.retry();
+                        stateMachine.retry();
           }}
           onHardReset={() => {
-            if (__DEV__) console.log('🏠 [AppWrapper] Hard reset to login');
-            stateMachine.hardReset();
+                        stateMachine.hardReset();
           }}
           onFactoryReset={() => {
-            if (__DEV__) console.log('🏭 [AppWrapper] Factory reset');
-            stateMachine.factoryReset();
+                        stateMachine.factoryReset();
           }}
           retryCount={stateMachine.retryCount}
         />
       );
 
     case APP_STATES.MAIN_APP:
-      // Render the main app content
-      if (__DEV__) console.log('🟢 [AppWrapper] Rendering main app');
-      return children;
+      
+            return children;
 
     default:
-      // Fallback - should NEVER happen
-      console.error('🚨 [AppWrapper] INVALID STATE:', stateMachine.currentState);
+
       return (
         <ErrorScreen
           error={{

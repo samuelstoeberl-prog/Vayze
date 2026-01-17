@@ -1,26 +1,19 @@
-/**
- * Zustand Store für Card Management
- * Zentrale State-Verwaltung mit Undo/Redo Support
- * NOW WITH USER-SCOPED STORAGE
- */
-
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'decisio_cards_v2'; // Legacy global key (for migration)
-const HISTORY_KEY = 'decisio_history'; // Legacy global key (for migration)
+const STORAGE_KEY = 'decisio_cards_v2'; 
+const HISTORY_KEY = 'decisio_history'; 
 const MAX_HISTORY = 50;
 
-// Helper to get user-scoped key
 const getUserKey = (userId, key) => {
-  if (!userId) return key; // Fallback to global
+  if (!userId) return key; 
   return `user_${userId}_${key}`;
 };
 
 export const useCardStore = create((set, get) => ({
-  // State
+  
   cards: new Map(),
-  currentUserId: null, // NEW: Track current user for scoped storage
+  currentUserId: null, 
   categories: [
     { id: 'todo', name: 'To Do', color: '#3b82f6', icon: '📋', order: 0 },
     { id: 'in_progress', name: 'In Progress', color: '#f59e0b', icon: '⚡', order: 1 },
@@ -38,21 +31,16 @@ export const useCardStore = create((set, get) => ({
   },
   sortBy: { field: 'updatedAt', direction: 'desc' },
 
-  // History for Undo/Redo
   history: [],
   historyIndex: -1,
 
-  // Loading states
   isLoading: false,
   isSyncing: false,
 
-  // NEW: Set current user (must be called after login)
   setCurrentUser: (userId) => {
-    if (__DEV__) console.log('🗂️ [cardStore] Setting current user:', userId);
-    set({ currentUserId: userId });
+        set({ currentUserId: userId });
   },
 
-  // Actions - CRUD
   addCard: (card) => {
     const state = get();
     const newCard = {
@@ -134,7 +122,6 @@ export const useCardStore = create((set, get) => ({
     get().addCard(duplicatedCard);
   },
 
-  // Bulk operations
   bulkUpdate: (ids, updates) => {
     ids.forEach(id => get().updateCard(id, updates));
   },
@@ -143,7 +130,6 @@ export const useCardStore = create((set, get) => ({
     ids.forEach(id => get().deleteCard(id));
   },
 
-  // Checklist operations
   addChecklistItem: (cardId, text) => {
     const state = get();
     const card = state.cards.get(cardId);
@@ -189,7 +175,6 @@ export const useCardStore = create((set, get) => ({
     });
   },
 
-  // Comment operations
   addComment: (cardId, text, author = 'User') => {
     const state = get();
     const card = state.cards.get(cardId);
@@ -208,7 +193,6 @@ export const useCardStore = create((set, get) => ({
     });
   },
 
-  // Filter & Sort
   setFilters: (filters) => {
     set({ filters: { ...get().filters, ...filters } });
   },
@@ -232,12 +216,10 @@ export const useCardStore = create((set, get) => ({
     set({ sortBy });
   },
 
-  // Computed - Filtered & Sorted Cards
   getFilteredCards: () => {
     const { cards, filters, sortBy } = get();
     let filtered = Array.from(cards.values());
 
-    // Apply filters
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -278,7 +260,6 @@ export const useCardStore = create((set, get) => ({
       filtered = filtered.filter(card => card.isFavorite);
     }
 
-    // Apply sorting
     filtered.sort((a, b) => {
       const aVal = a[sortBy.field];
       const bVal = b[sortBy.field];
@@ -305,7 +286,6 @@ export const useCardStore = create((set, get) => ({
     return get().getFilteredCards().filter(card => card.category === categoryId);
   },
 
-  // History Management (Undo/Redo)
   addToHistory: (action, cardId, previousState, newState) => {
     const state = get();
     const entry = {
@@ -319,7 +299,6 @@ export const useCardStore = create((set, get) => ({
     const newHistory = state.history.slice(0, state.historyIndex + 1);
     newHistory.push(entry);
 
-    // Limit history size
     if (newHistory.length > MAX_HISTORY) {
       newHistory.shift();
     }
@@ -395,22 +374,18 @@ export const useCardStore = create((set, get) => ({
   canUndo: () => get().historyIndex >= 0,
   canRedo: () => get().historyIndex < get().history.length - 1,
 
-  // Persistence - NOW USER-SCOPED
   persistToStorage: async () => {
     try {
       const { cards, currentUserId } = get();
       if (!currentUserId) {
-        if (__DEV__) console.warn('⚠️ [cardStore] Cannot persist: No user set');
-        return;
+                return;
       }
 
       const cardsArray = Array.from(cards.values());
       const userKey = getUserKey(currentUserId, 'cards');
       await AsyncStorage.setItem(userKey, JSON.stringify(cardsArray));
-
-      if (__DEV__) console.log(`💾 [cardStore] Persisted ${cardsArray.length} cards for user:`, currentUserId);
     } catch (error) {
-      console.error('Failed to persist cards:', error);
+      console.error('Error persisting cards to storage:', error);
     }
   },
 
@@ -420,35 +395,27 @@ export const useCardStore = create((set, get) => ({
 
       const userIdToLoad = userId || get().currentUserId;
       if (!userIdToLoad) {
-        if (__DEV__) console.warn('⚠️ [cardStore] Cannot load: No user specified');
-        set({ isLoading: false });
+                set({ isLoading: false });
         return;
       }
 
-      if (__DEV__) console.log('📂 [cardStore] Loading cards for user:', userIdToLoad);
-
-      // Set current user if provided
-      if (userId) {
+            if (userId) {
         set({ currentUserId: userId });
       }
 
       const userKey = getUserKey(userIdToLoad, 'cards');
       let data = await AsyncStorage.getItem(userKey);
 
-      // CRITICAL FIX: Always check and delete global legacy data to prevent cross-user contamination
       const legacyData = await AsyncStorage.getItem(STORAGE_KEY);
       if (legacyData) {
         if (!data) {
-          // User doesn't have scoped data - migrate from global
-          if (__DEV__) console.log('🔄 [cardStore] Migrating legacy cards to user scope');
-          await AsyncStorage.setItem(userKey, legacyData);
+          
+                    await AsyncStorage.setItem(userKey, legacyData);
           data = legacyData;
         }
 
-        // ALWAYS delete global data, even if user already has scoped data
         await AsyncStorage.removeItem(STORAGE_KEY);
-        if (__DEV__) console.log('🗑️ [cardStore] Deleted global legacy data to prevent cross-user contamination');
-      }
+              }
 
       if (data) {
         const cardsArray = JSON.parse(data);
@@ -464,22 +431,18 @@ export const useCardStore = create((set, get) => ({
           ])
         );
         set({ cards: cardsMap });
-        if (__DEV__) console.log(`✅ [cardStore] Loaded ${cardsArray.length} cards for user:`, userIdToLoad);
       } else {
-        if (__DEV__) console.log('⚠️ [cardStore] No cards found for user:', userIdToLoad);
         set({ cards: new Map() });
       }
     } catch (error) {
-      console.error('Failed to load cards:', error);
+      console.error('Error loading cards from storage:', error);
     } finally {
       set({ isLoading: false });
     }
   },
 
-  // NEW: Clear all cards (on logout)
   clearCards: () => {
-    if (__DEV__) console.log('🗑️ [cardStore] Clearing all cards');
-    set({
+        set({
       cards: new Map(),
       currentUserId: null,
       history: [],
@@ -487,7 +450,6 @@ export const useCardStore = create((set, get) => ({
     });
   },
 
-  // Import/Export
   exportToJSON: () => {
     const { cards } = get();
     return JSON.stringify(Array.from(cards.values()), null, 2);
@@ -511,12 +473,11 @@ export const useCardStore = create((set, get) => ({
       get().persistToStorage();
       return { success: true, count: cardsArray.length };
     } catch (error) {
-      console.error('Import failed:', error);
+      
       return { success: false, error: error.message };
     }
   },
 
-  // Migration from old decisions
   migrateOldDecisions: async () => {
     try {
       const oldData = await AsyncStorage.getItem('completedDecisions');
@@ -556,7 +517,7 @@ export const useCardStore = create((set, get) => ({
 
       return { success: true, count: oldDecisions.length };
     } catch (error) {
-      console.error('Migration failed:', error);
+      
       return { success: false, error: error.message, count: 0 };
     }
   },

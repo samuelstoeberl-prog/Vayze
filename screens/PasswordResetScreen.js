@@ -1,8 +1,3 @@
-/**
- * Password Reset Screen
- * Simple, clean UI for password reset via email
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -29,7 +24,6 @@ export default function PasswordResetScreen({ onBack }) {
       return;
     }
 
-    // Validate email format
     if (!firebaseAuthService.validateEmail(email)) {
       Alert.alert('Fehler', 'Ungültige E-Mail-Adresse.');
       return;
@@ -42,7 +36,7 @@ export default function PasswordResetScreen({ onBack }) {
 
       if (result.success) {
         setEmailSent(true);
-        // Auto-close after 5 seconds
+        
         setTimeout(() => {
           if (onBack) onBack();
         }, 5000);
@@ -91,7 +85,7 @@ export default function PasswordResetScreen({ onBack }) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Back Button */}
+        {}
         <TouchableOpacity
           style={styles.closeButton}
           onPress={onBack}
@@ -100,7 +94,7 @@ export default function PasswordResetScreen({ onBack }) {
           <Text style={styles.closeButtonText}>✕</Text>
         </TouchableOpacity>
 
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <Text style={styles.emoji}>🔐</Text>
           <Text style={styles.title}>Passwort zurücksetzen</Text>
@@ -109,7 +103,7 @@ export default function PasswordResetScreen({ onBack }) {
           </Text>
         </View>
 
-        {/* Form */}
+        {}
         <View style={styles.form}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>E-Mail-Adresse</Text>
@@ -142,7 +136,7 @@ export default function PasswordResetScreen({ onBack }) {
           </TouchableOpacity>
         </View>
 
-        {/* Info */}
+        {}
         <View style={styles.infoContainer}>
           <Text style={styles.infoText}>
             💡 Der Link ist 1 Stunde gültig
@@ -254,7 +248,7 @@ const styles = StyleSheet.create({
     color: '#0369a1',
     lineHeight: 20,
   },
-  // Success state
+  
   successContainer: {
     flex: 1,
     justifyContent: 'center',

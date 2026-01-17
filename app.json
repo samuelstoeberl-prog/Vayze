@@ -51,6 +51,19 @@
           "color": "#3B82F6",
           "sounds": []
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Die App benötigt Zugriff auf deine Fotos für Journal-Einträge",
+          "cameraPermission": "Die App benötigt Zugriff auf die Kamera für Journal-Einträge"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Die App benötigt Zugriff auf das Mikrofon für Voice Memos"
+        }
       ]
     ],
     "web": {

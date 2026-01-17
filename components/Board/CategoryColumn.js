@@ -1,7 +1,3 @@
-/**
- * Kanban Category Column - Einzelne Spalte mit Drag & Drop
- */
-
 import React from 'react';
 import {
   View,
@@ -36,7 +32,7 @@ export default function CategoryColumn({
 
   return (
     <View style={[styles.column, { width: columnWidth }]}>
-      {/* Column Header */}
+      {}
       <View style={[styles.header, { borderTopColor: category.color }]}>
         <View style={styles.headerTop}>
           <Text style={styles.headerIcon}>{category.icon}</Text>
@@ -47,7 +43,7 @@ export default function CategoryColumn({
         </View>
       </View>
 
-      {/* Cards List */}
+      {}
       <ScrollView
         style={styles.cardsList}
         contentContainerStyle={styles.cardsContent}
@@ -71,7 +67,7 @@ export default function CategoryColumn({
         )}
       </ScrollView>
 
-      {/* Add Card Button */}
+      {}
       <TouchableOpacity
         style={styles.addButton}
         onPress={handleAddCard}

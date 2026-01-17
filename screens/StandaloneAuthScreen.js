@@ -1,9 +1,3 @@
-/**
- * Standalone Auth Screen
- * Uses the beautiful Screen5Gateway design for standalone authentication
- * (after onboarding is completed)
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -25,7 +19,7 @@ import PasswordResetScreen from './PasswordResetScreen';
 
 export default function StandaloneAuthScreen() {
   const { signIn } = useAuth();
-  const [mode, setMode] = useState('signup'); // 'signup' | 'login' | 'reset'
+  const [mode, setMode] = useState('signup'); 
   const [accountData, setAccountData] = useState({ name: '', email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +29,38 @@ export default function StandaloneAuthScreen() {
     setAccountData({ name: '', email: '', password: '' });
   };
 
-  // Show password reset screen
+  // Quick test login function for emulator testing
+  const quickTestLogin = async () => {
+    try {
+      setIsLoading(true);
+      setMode('login');
+
+      // Use test credentials (replace with your actual test account)
+      const testEmail = 'test@vayze.app';
+      const testPassword = 'test123456';
+
+      setAccountData({ name: '', email: testEmail, password: testPassword });
+
+      const result = await firebaseAuthService.login(testEmail, testPassword);
+
+      if (result.success) {
+        await signIn({
+          id: result.user.uid,
+          email: result.user.email,
+          name: result.user.displayName,
+          provider: 'firebase',
+          emailVerified: result.user.emailVerified
+        });
+      } else {
+        Alert.alert('Quick Login fehlgeschlagen', 'Test-Account existiert noch nicht. Erstelle ihn mit Email: test@vayze.app und Passwort: test123456');
+      }
+    } catch (error) {
+      Alert.alert('Quick Login Fehler', 'Test-Account erstellen oder andere Email verwenden');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (mode === 'reset') {
     return <PasswordResetScreen onBack={() => setMode('login')} />;
   }
@@ -58,20 +83,17 @@ export default function StandaloneAuthScreen() {
           return;
         }
 
-        // Validate email format
         if (!firebaseAuthService.validateEmail(accountData.email)) {
           Alert.alert('Fehler', 'Ungültige E-Mail-Adresse');
           return;
         }
 
-        // Validate password strength
         const passwordValidation = firebaseAuthService.validatePassword(accountData.password);
         if (!passwordValidation.valid) {
           Alert.alert('Fehler', passwordValidation.message);
           return;
         }
 
-        // Register with Firebase
         const result = await firebaseAuthService.register(
           accountData.email.trim().toLowerCase(),
           accountData.password,
@@ -79,7 +101,7 @@ export default function StandaloneAuthScreen() {
         );
 
         if (result.success) {
-          // Sign in to context
+          
           await signIn({
             id: result.user.uid,
             email: result.user.email,
@@ -106,14 +128,13 @@ export default function StandaloneAuthScreen() {
           return;
         }
 
-        // Login with Firebase
         const result = await firebaseAuthService.login(
           accountData.email.trim().toLowerCase(),
           accountData.password
         );
 
         if (result.success) {
-          // Sign in to context
+          
           await signIn({
             id: result.user.uid,
             email: result.user.email,
@@ -122,7 +143,6 @@ export default function StandaloneAuthScreen() {
             emailVerified: result.user.emailVerified
           });
 
-          // Show email verification reminder if not verified
           if (!result.user.emailVerified) {
             Alert.alert(
               'Anmeldung erfolgreich',
@@ -155,14 +175,14 @@ export default function StandaloneAuthScreen() {
         keyboardShouldPersistTaps="handled"
         bounces={false}
       >
-        {/* Logo */}
+        {}
         <View style={styles.logoContainer}>
           <View style={styles.logo}>
             <Text style={styles.logoText}>V</Text>
           </View>
         </View>
 
-        {/* Content */}
+        {}
         <View style={styles.content}>
           <Text style={styles.title}>
             {mode === 'signup' ? 'Lass es uns persönlich machen.' : 'Willkommen zurück!'}
@@ -176,7 +196,7 @@ export default function StandaloneAuthScreen() {
 
           {mode === 'signup' && (
             <>
-              {/* Value Props */}
+              {}
               <View style={styles.valueProps}>
                 <View style={styles.valueProp}>
                   <Text style={styles.valuePropDot}>•</Text>
@@ -192,7 +212,7 @@ export default function StandaloneAuthScreen() {
                 </View>
               </View>
 
-              {/* Trust Signals */}
+              {}
               <View style={styles.trustSignals}>
                 <View style={styles.trustSignal}>
                   <Text style={styles.trustSignalEmoji}>🔒</Text>
@@ -211,7 +231,7 @@ export default function StandaloneAuthScreen() {
           )}
         </View>
 
-        {/* Mode Toggle */}
+        {}
         <View style={styles.modeToggle}>
           <TouchableOpacity
             style={[styles.modeButton, mode === 'signup' && styles.modeButtonActive]}
@@ -231,7 +251,20 @@ export default function StandaloneAuthScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Form */}
+        {/* Quick Test Login - Only for development */}
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.quickLoginButton}
+            onPress={quickTestLogin}
+            disabled={isLoading}
+          >
+            <Text style={styles.quickLoginText}>
+              ⚡ Quick Test Login (test@vayze.app)
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {}
         <View style={styles.form}>
           {mode === 'signup' && (
             <TextInput
@@ -287,7 +320,7 @@ export default function StandaloneAuthScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Forgot Password Link (Login Mode only) */}
+          {}
           {mode === 'login' && (
             <TouchableOpacity
               onPress={() => setMode('reset')}
@@ -310,13 +343,13 @@ export default function StandaloneAuthScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Legal */}
+        {}
         <View style={styles.legalContainer}>
           <Text style={styles.legalText}>
             Mit dem Fortfahren stimmst du unseren{' '}
             <Text
               style={styles.legalLink}
-              onPress={() => WebBrowser.openBrowserAsync('https://samuelstoeberl-prog.github.io/Vayze-Legal/index.html#terms')}
+              onPress={() => WebBrowser.openBrowserAsync('https://samuelstoeberl-prog.github.io/Vayze-Legal/Nutzungsbedingungen.html')}
               accessibilityRole="link"
               accessibilityLabel="Nutzungsbedingungen"
             >
@@ -325,7 +358,7 @@ export default function StandaloneAuthScreen() {
             {' '}und{' '}
             <Text
               style={styles.legalLink}
-              onPress={() => WebBrowser.openBrowserAsync('https://samuelstoeberl-prog.github.io/Vayze-Legal/index.html#privacy')}
+              onPress={() => WebBrowser.openBrowserAsync('https://samuelstoeberl-prog.github.io/Vayze-Legal/Datenschutzerklärung.html')}
               accessibilityRole="link"
               accessibilityLabel="Datenschutzerklärung"
             >
@@ -350,7 +383,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 28,
     paddingTop: 60,
-    paddingBottom: 400, // Extra Platz damit Tastatur nicht verdeckt
+    paddingBottom: 400, 
   },
   logoContainer: {
     alignItems: 'center',
@@ -519,5 +552,20 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontSize: 14,
     fontWeight: '600',
+  },
+  quickLoginButton: {
+    backgroundColor: '#10b981',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#059669',
+  },
+  quickLoginText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

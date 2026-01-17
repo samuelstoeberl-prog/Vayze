@@ -1,14 +1,5 @@
-/**
- * DecisionExplainer
- *
- * Macht Entscheidungen transparent und nachvollziehbar.
- * Zeigt dem User WARUM eine Empfehlung gegeben wurde.
- */
-
 export class DecisionExplainer {
-  /**
-   * Hauptfunktion: Analysiert eine Entscheidung und generiert eine Erklärung
-   */
+  
   static explainDecision(answers, mode, finalScore, recommendation) {
     const factors = this._analyzeFactors(answers, mode);
     const summary = this._generateSummary(factors, recommendation);
@@ -22,9 +13,6 @@ export class DecisionExplainer {
     };
   }
 
-  /**
-   * Analysiert alle Antworten und kategorisiert sie nach Stärke
-   */
   static _analyzeFactors(answers, mode) {
     const factors = {
       positive: [],
@@ -33,7 +21,7 @@ export class DecisionExplainer {
     };
 
     if (mode === 'full') {
-      // Step 1: Bauchgefühl (Weight: 2)
+      
       if (answers.step1) {
         const gut = answers.step1.gut;
         if (gut > 6) {
@@ -60,7 +48,6 @@ export class DecisionExplainer {
         }
       }
 
-      // Step 2: Chancen vs Risiken (Weight: 4)
       if (answers.step2) {
         const { opportunities = [], risks = [] } = answers.step2;
         const balance = opportunities.length - risks.length;
@@ -89,7 +76,6 @@ export class DecisionExplainer {
         }
       }
 
-      // Step 3: Konsequenzen (Weight: 3)
       if (answers.step3) {
         const { positiveConsequences = [], negativeConsequences = [] } = answers.step3;
         const balance = positiveConsequences.length - negativeConsequences.length;
@@ -111,7 +97,6 @@ export class DecisionExplainer {
         }
       }
 
-      // Step 4: Ziele & Werte (Weight: 4)
       if (answers.step4) {
         const { alignment = 5 } = answers.step4;
         if (alignment > 6) {
@@ -131,7 +116,6 @@ export class DecisionExplainer {
         }
       }
 
-      // Step 5: Dritte Meinung (Weight: 2)
       if (answers.step5) {
         const { externalOpinion = 5 } = answers.step5;
         if (externalOpinion > 6) {
@@ -151,7 +135,6 @@ export class DecisionExplainer {
         }
       }
 
-      // Step 6: Kopf vs Herz (Weight: 6)
       if (answers.step6) {
         const { headDecision, heartDecision } = answers.step6;
         if (headDecision === 'yes' && heartDecision === 'yes') {
@@ -179,9 +162,7 @@ export class DecisionExplainer {
       }
 
     } else if (mode === 'quick') {
-      // Quick Mode: Nur 2 Steps
 
-      // Step 1: Bauchgefühl
       if (answers.quickGut) {
         const gut = answers.quickGut;
         if (gut > 6) {
@@ -208,7 +189,6 @@ export class DecisionExplainer {
         }
       }
 
-      // Step 2: Pro/Contra
       if (answers.quickProCon) {
         const { pros = [], cons = [] } = answers.quickProCon;
         const balance = pros.length - cons.length;
@@ -238,23 +218,16 @@ export class DecisionExplainer {
       }
     }
 
-    // Sortiere nach Stärke
     factors.positive.sort((a, b) => b.strength - a.strength);
     factors.negative.sort((a, b) => b.strength - a.strength);
 
     return factors;
   }
 
-  /**
-   * Berechnet die Stärke eines Faktors (0-10)
-   */
   static _calculateStrength(value, maxValue, weight) {
     return (value / maxValue) * weight;
   }
 
-  /**
-   * Generiert eine menschenlesbare Zusammenfassung
-   */
   static _generateSummary(factors, recommendation) {
     const { positive, negative, neutral } = factors;
 
@@ -263,13 +236,11 @@ export class DecisionExplainer {
     if (recommendation === 'yes') {
       summary = `Wir empfehlen **JA**, weil:\n\n`;
 
-      // Top 3 positive Faktoren
       const topPositive = positive.slice(0, 3);
       topPositive.forEach(factor => {
         summary += `${factor.icon} **${factor.label}**: ${factor.description}\n`;
       });
 
-      // Warnungen bei negativen Faktoren
       if (negative.length > 0) {
         summary += `\n⚠️ **Beachte aber**: ${negative[0].description}`;
       }
@@ -277,19 +248,17 @@ export class DecisionExplainer {
     } else if (recommendation === 'no') {
       summary = `Wir empfehlen **NEIN**, weil:\n\n`;
 
-      // Top 3 negative Faktoren
       const topNegative = negative.slice(0, 3);
       topNegative.forEach(factor => {
         summary += `${factor.icon} **${factor.label}**: ${factor.description}\n`;
       });
 
-      // Hinweis bei positiven Faktoren
       if (positive.length > 0) {
         summary += `\n💡 **Aber**: ${positive[0].description}`;
       }
 
     } else {
-      // Neutral
+      
       summary = `Die Entscheidung ist **UNKLAR**:\n\n`;
       summary += `Es gibt ${positive.length} Argumente dafür und ${negative.length} dagegen.\n\n`;
 
@@ -303,14 +272,10 @@ export class DecisionExplainer {
     return summary;
   }
 
-  /**
-   * Generiert Meta-Insights über die Entscheidung
-   */
   static _generateInsights(factors, finalScore) {
     const insights = [];
     const { positive, negative, neutral } = factors;
 
-    // Insight 1: Klarheit der Entscheidung
     if (finalScore >= 70 || finalScore <= 30) {
       insights.push({
         type: 'clarity',
@@ -329,7 +294,6 @@ export class DecisionExplainer {
       });
     }
 
-    // Insight 2: Innerer Konflikt
     if (neutral.some(f => f.label.includes('Konflikt'))) {
       insights.push({
         type: 'conflict',
@@ -339,7 +303,6 @@ export class DecisionExplainer {
       });
     }
 
-    // Insight 3: Dominanter Faktor
     if (positive.length > 0 && positive[0].strength >= 5) {
       insights.push({
         type: 'dominant',
@@ -356,13 +319,9 @@ export class DecisionExplainer {
       });
     }
 
-    // Maximal 3 Insights zurückgeben
     return insights.slice(0, 3);
   }
 
-  /**
-   * Generiert einen kurzen 1-Satz-Summary für Listen
-   */
   static getShortSummary(explanation) {
     if (!explanation) return 'Keine Erklärung verfügbar';
 

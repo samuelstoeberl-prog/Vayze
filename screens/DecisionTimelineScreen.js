@@ -1,10 +1,3 @@
-/**
- * DecisionTimelineScreen
- *
- * Chronologische Ansicht aller Entscheidungen mit Filtern
- * Zeigt Review-Status, Score, und Kategorie
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -20,14 +13,12 @@ import { DecisionExplainer } from '../utils/decisionExplainer';
 export default function DecisionTimelineScreen({ navigation }) {
   const { decisions, getDecisionsByDateRange } = useDecisionStore();
 
-  const [filter, setFilter] = useState('all'); // 'all', 'week', 'month', 'year'
-  const [sortBy, setSortBy] = useState('date'); // 'date', 'score', 'reviewed'
+  const [filter, setFilter] = useState('all'); 
+  const [sortBy, setSortBy] = useState('date'); 
 
-  // Sortiere und filtere Entscheidungen
   const getFilteredDecisions = () => {
     let filtered = [...decisions];
 
-    // Zeit-Filter
     const now = new Date();
     if (filter === 'week') {
       const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
@@ -40,7 +31,6 @@ export default function DecisionTimelineScreen({ navigation }) {
       filtered = getDecisionsByDateRange(yearAgo, now);
     }
 
-    // Sortierung
     if (sortBy === 'date') {
       filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (sortBy === 'score') {
@@ -56,11 +46,11 @@ export default function DecisionTimelineScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Filter Header */}
+      {}
       <View style={styles.filterHeader}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.filterRow}>
-            {/* Zeit-Filter */}
+            {}
             <FilterButton
               label="Alle"
               active={filter === 'all'}
@@ -84,7 +74,7 @@ export default function DecisionTimelineScreen({ navigation }) {
 
             <View style={styles.filterDivider} />
 
-            {/* Sortierung */}
+            {}
             <FilterButton
               label="📅 Datum"
               active={sortBy === 'date'}
@@ -104,7 +94,7 @@ export default function DecisionTimelineScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* Timeline */}
+      {}
       <FlatList
         data={filteredDecisions}
         keyExtractor={(item) => item.id}
@@ -132,9 +122,6 @@ export default function DecisionTimelineScreen({ navigation }) {
   );
 }
 
-/**
- * Timeline Item Component
- */
 function DecisionTimelineItem({ decision, isFirst, navigation }) {
   const date = new Date(decision.createdAt);
   const formattedDate = date.toLocaleDateString('de-DE', {
@@ -172,24 +159,24 @@ function DecisionTimelineItem({ decision, isFirst, navigation }) {
         navigation.navigate('DecisionDetail', { decisionId: decision.id })
       }
     >
-      {/* Timeline Connector */}
+      {}
       <View style={styles.timelineConnector}>
         {!isFirst && <View style={styles.timelineLine} />}
         <View style={[styles.timelineDot, { backgroundColor: recommendationColor }]} />
         <View style={styles.timelineLine} />
       </View>
 
-      {/* Content */}
+      {}
       <View style={styles.timelineContent}>
-        {/* Date */}
+        {}
         <Text style={styles.timelineDate}>
           {formattedDate} • {formattedTime}
         </Text>
 
-        {/* Decision */}
+        {}
         <Text style={styles.timelineDecision}>{decision.decision}</Text>
 
-        {/* Recommendation */}
+        {}
         <View style={styles.recommendationBadge}>
           <Text style={styles.recommendationIcon}>{recommendationIcon}</Text>
           <Text style={styles.recommendationText}>
@@ -202,16 +189,16 @@ function DecisionTimelineItem({ decision, isFirst, navigation }) {
           <Text style={styles.scoreText}>{decision.finalScore}%</Text>
         </View>
 
-        {/* Short Summary */}
+        {}
         {shortSummary && (
           <Text style={styles.shortSummary} numberOfLines={2}>
             {shortSummary}
           </Text>
         )}
 
-        {/* Metadata */}
+        {}
         <View style={styles.metadata}>
-          {/* Mode */}
+          {}
           <View style={styles.metadataItem}>
             <Text style={styles.metadataIcon}>
               {decision.mode === 'quick' ? '⚡' : '🔍'}
@@ -221,7 +208,7 @@ function DecisionTimelineItem({ decision, isFirst, navigation }) {
             </Text>
           </View>
 
-          {/* Preset */}
+          {}
           {decision.weightPreset && decision.weightPreset !== 'balanced' && (
             <View style={styles.metadataItem}>
               <Text style={styles.metadataIcon}>⚖️</Text>
@@ -229,7 +216,7 @@ function DecisionTimelineItem({ decision, isFirst, navigation }) {
             </View>
           )}
 
-          {/* Review Status */}
+          {}
           {decision.review && (
             <View style={styles.metadataItem}>
               <Text style={styles.metadataIcon}>✓</Text>
@@ -237,7 +224,7 @@ function DecisionTimelineItem({ decision, isFirst, navigation }) {
             </View>
           )}
 
-          {/* Category */}
+          {}
           {decision.category && decision.category !== 'other' && (
             <View style={styles.metadataItem}>
               <Text style={styles.metadataIcon}>🏷️</Text>
@@ -250,9 +237,6 @@ function DecisionTimelineItem({ decision, isFirst, navigation }) {
   );
 }
 
-/**
- * Filter Button Component
- */
 function FilterButton({ label, active, onPress }) {
   return (
     <TouchableOpacity

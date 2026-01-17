@@ -1,0 +1,28 @@
+{
+  "name": "vayze-notification-backend",
+  "version": "1.0.0",
+  "description": "Backend for sending push notifications to Vayze app users",
+  "main": "sendNotification.js",
+  "scripts": {
+    "send": "node sendNotification.js",
+    "send-daily": "node schedules/dailyReminder.js",
+    "send-weekly": "node schedules/weeklyReview.js",
+    "test": "node sendNotification.js"
+  },
+  "keywords": [
+    "firebase",
+    "fcm",
+    "push-notifications",
+    "vayze"
+  ],
+  "author": "Vayze Team",
+  "license": "MIT",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "node-cron": "^3.0.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}

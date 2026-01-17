@@ -1,7 +1,3 @@
-/**
- * Checklist Section - Task list within cards
- */
-
 import React, { useState } from 'react';
 import {
   View,

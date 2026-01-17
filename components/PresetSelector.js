@@ -1,10 +1,3 @@
-/**
- * PresetSelector Component
- *
- * Ermöglicht dem User, den Fokus der Entscheidung zu wählen
- * (Rational, Emotional, Karriere, Beziehung, Finanziell, Ausgewogen)
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -28,7 +21,7 @@ export default function PresetSelector({ currentPreset, onSelectPreset, recommen
 
   return (
     <View>
-      {/* Trigger Button */}
+      {}
       <TouchableOpacity
         style={styles.triggerButton}
         onPress={() => setModalVisible(true)}
@@ -41,7 +34,7 @@ export default function PresetSelector({ currentPreset, onSelectPreset, recommen
         <Text style={styles.triggerArrow}>›</Text>
       </TouchableOpacity>
 
-      {/* Recommended Preset Hint */}
+      {}
       {recommendedPreset && recommendedPreset !== currentPreset && (
         <View style={styles.recommendationHint}>
           <Text style={styles.recommendationText}>
@@ -55,7 +48,7 @@ export default function PresetSelector({ currentPreset, onSelectPreset, recommen
         </View>
       )}
 
-      {/* Modal mit allen Presets */}
+      {}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -64,7 +57,7 @@ export default function PresetSelector({ currentPreset, onSelectPreset, recommen
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {/* Header */}
+            {}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Gewichtung wählen</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -72,12 +65,12 @@ export default function PresetSelector({ currentPreset, onSelectPreset, recommen
               </TouchableOpacity>
             </View>
 
-            {/* Info */}
+            {}
             <Text style={styles.modalInfo}>
               Jede Gewichtung fokussiert unterschiedliche Aspekte deiner Entscheidung.
             </Text>
 
-            {/* Preset List */}
+            {}
             <ScrollView style={styles.presetList}>
               {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => {
                 const isSelected = key === currentPreset;
@@ -108,7 +101,7 @@ export default function PresetSelector({ currentPreset, onSelectPreset, recommen
                     </View>
                     <Text style={styles.presetDescription}>{preset.description}</Text>
 
-                    {/* Gewichtungen visualisieren */}
+                    {}
                     <View style={styles.weightsPreview}>
                       {this._renderTopWeights(preset.weights)}
                     </View>
@@ -122,9 +115,6 @@ export default function PresetSelector({ currentPreset, onSelectPreset, recommen
     </View>
   );
 
-  /**
-   * Zeigt die Top 3 Gewichtungen
-   */
   function _renderTopWeights(weights) {
     const weightLabels = {
       intuition: 'Bauchgefühl',

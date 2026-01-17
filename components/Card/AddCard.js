@@ -1,7 +1,3 @@
-/**
- * Add Card Modal - Create new cards
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -55,7 +51,6 @@ export default function AddCard({ visible, onClose, defaultCategory = 'backlog' 
         tags: tagArray,
       });
 
-      // Reset form
       setTitle('');
       setDescription('');
       setCategory(defaultCategory);
@@ -68,7 +63,7 @@ export default function AddCard({ visible, onClose, defaultCategory = 'backlog' 
   };
 
   const handleClose = () => {
-    // Reset form
+    
     setTitle('');
     setDescription('');
     setCategory(defaultCategory);
@@ -86,7 +81,7 @@ export default function AddCard({ visible, onClose, defaultCategory = 'backlog' 
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Text style={styles.closeIcon}>✕</Text>
@@ -109,7 +104,7 @@ export default function AddCard({ visible, onClose, defaultCategory = 'backlog' 
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Title */}
+          {}
           <View style={styles.section}>
             <Text style={styles.label}>Title *</Text>
             <TextInput
@@ -122,7 +117,7 @@ export default function AddCard({ visible, onClose, defaultCategory = 'backlog' 
             />
           </View>
 
-          {/* Description */}
+          {}
           <View style={styles.section}>
             <Text style={styles.label}>Description</Text>
             <TextInput
@@ -136,7 +131,7 @@ export default function AddCard({ visible, onClose, defaultCategory = 'backlog' 
             />
           </View>
 
-          {/* Category */}
+          {}
           <View style={styles.section}>
             <Text style={styles.label}>Category</Text>
             <View style={styles.options}>
@@ -159,7 +154,7 @@ export default function AddCard({ visible, onClose, defaultCategory = 'backlog' 
             </View>
           </View>
 
-          {/* Priority */}
+          {}
           <View style={styles.section}>
             <Text style={styles.label}>Priority</Text>
             <View style={styles.options}>
@@ -182,7 +177,7 @@ export default function AddCard({ visible, onClose, defaultCategory = 'backlog' 
             </View>
           </View>
 
-          {/* Type */}
+          {}
           <View style={styles.section}>
             <Text style={styles.label}>Type</Text>
             <View style={styles.options}>
@@ -202,7 +197,7 @@ export default function AddCard({ visible, onClose, defaultCategory = 'backlog' 
             </View>
           </View>
 
-          {/* Tags */}
+          {}
           <View style={styles.section}>
             <Text style={styles.label}>Tags</Text>
             <TextInput

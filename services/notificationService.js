@@ -1,8 +1,3 @@
-/**
- * Notification Service
- * Handles daily motivational notifications
- */
-
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
@@ -11,7 +6,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const NOTIFICATION_PERMISSION_KEY = 'notification_permission_asked';
 const NOTIFICATION_ENABLED_KEY = 'notifications_enabled';
 
-// Configure notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -20,7 +14,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Motivational messages (10 variations)
 const MOTIVATIONAL_MESSAGES = [
   {
     title: '🧠 Zeit für eine kluge Entscheidung',
@@ -65,13 +58,10 @@ const MOTIVATIONAL_MESSAGES = [
 ];
 
 class NotificationService {
-  /**
-   * Request notification permissions
-   */
+  
   async requestPermissions() {
     try {
       if (!Device.isDevice) {
-        if (__DEV__) console.log('📱 [Notifications] Must use physical device for push notifications');
         return { granted: false, reason: 'emulator' };
       }
 
@@ -84,14 +74,10 @@ class NotificationService {
       }
 
       if (finalStatus !== 'granted') {
-        if (__DEV__) console.log('❌ [Notifications] Permission denied');
         return { granted: false, reason: 'denied' };
       }
 
-      if (__DEV__) console.log('✅ [Notifications] Permission granted');
-
-      // Configure notification channel for Android
-      if (Platform.OS === 'android') {
+            if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('daily-reminder', {
           name: 'Tägliche Erinnerungen',
           description: 'Motivierende tägliche Benachrichtigungen',
@@ -104,88 +90,60 @@ class NotificationService {
 
       return { granted: true };
     } catch (error) {
-      console.error('❌ [Notifications] Permission error:', error);
-      return { granted: false, reason: 'error', error };
+            return { granted: false, reason: 'error', error };
     }
   }
 
-  /**
-   * Check if permission has been asked before
-   */
   async hasAskedPermission() {
     try {
       const asked = await AsyncStorage.getItem(NOTIFICATION_PERMISSION_KEY);
       return asked === 'true';
     } catch (error) {
-      console.error('Failed to check permission status:', error);
-      return false;
+            return false;
     }
   }
 
-  /**
-   * Mark permission as asked
-   */
   async markPermissionAsked() {
     try {
       await AsyncStorage.setItem(NOTIFICATION_PERMISSION_KEY, 'true');
     } catch (error) {
-      console.error('Failed to mark permission asked:', error);
-    }
+          }
   }
 
-  /**
-   * Check if notifications are enabled
-   */
   async areNotificationsEnabled() {
     try {
       const enabled = await AsyncStorage.getItem(NOTIFICATION_ENABLED_KEY);
       return enabled === 'true';
     } catch (error) {
-      console.error('Failed to check notifications enabled:', error);
-      return false;
+            return false;
     }
   }
 
-  /**
-   * Enable notifications
-   */
   async enableNotifications() {
     try {
       await AsyncStorage.setItem(NOTIFICATION_ENABLED_KEY, 'true');
       await this.scheduleDailyNotification();
-      if (__DEV__) console.log('✅ [Notifications] Enabled and scheduled');
-    } catch (error) {
-      console.error('Failed to enable notifications:', error);
-      throw error;
+      } catch (error) {
+            throw error;
     }
   }
 
-  /**
-   * Disable notifications
-   */
   async disableNotifications() {
     try {
       await AsyncStorage.setItem(NOTIFICATION_ENABLED_KEY, 'false');
       await this.cancelAllNotifications();
-      if (__DEV__) console.log('🔕 [Notifications] Disabled and cancelled');
-    } catch (error) {
-      console.error('Failed to disable notifications:', error);
-      throw error;
+      } catch (error) {
+            throw error;
     }
   }
 
-  /**
-   * Schedule daily notification at optimal time (19:00 / 7 PM)
-   */
   async scheduleDailyNotification() {
     try {
-      // Cancel existing notifications first
+      
       await this.cancelAllNotifications();
 
-      // Pick a random motivational message
       const randomMessage = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
 
-      // Schedule for 19:00 (7 PM) daily
       const trigger = {
         hour: 19,
         minute: 0,
@@ -205,29 +163,19 @@ class NotificationService {
         trigger,
       });
 
-      if (__DEV__) console.log('📅 [Notifications] Scheduled daily notification at 19:00. ID:', notificationId);
       return notificationId;
     } catch (error) {
-      console.error('❌ [Notifications] Failed to schedule:', error);
-      throw error;
+            throw error;
     }
   }
 
-  /**
-   * Cancel all scheduled notifications
-   */
   async cancelAllNotifications() {
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
-      if (__DEV__) console.log('🔕 [Notifications] Cancelled all notifications');
-    } catch (error) {
-      console.error('Failed to cancel notifications:', error);
-    }
+      } catch (error) {
+          }
   }
 
-  /**
-   * Send immediate test notification (for testing)
-   */
   async sendTestNotification() {
     try {
       const randomMessage = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
@@ -241,27 +189,20 @@ class NotificationService {
             channelId: 'daily-reminder',
           }),
         },
-        trigger: { seconds: 2 }, // Send in 2 seconds
+        trigger: { seconds: 2 }, 
       });
 
-      if (__DEV__) console.log('🧪 [Notifications] Test notification sent');
-    } catch (error) {
-      console.error('Failed to send test notification:', error);
-      throw error;
+      } catch (error) {
+            throw error;
     }
   }
 
-  /**
-   * Get all scheduled notifications (for debugging)
-   */
   async getScheduledNotifications() {
     try {
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-      if (__DEV__) console.log('📋 [Notifications] Scheduled:', scheduled);
       return scheduled;
     } catch (error) {
-      console.error('Failed to get scheduled notifications:', error);
-      return [];
+            return [];
     }
   }
 }

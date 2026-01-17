@@ -1,7 +1,3 @@
-/**
- * Search Bar - Globale Suchleiste für Cards
- */
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -16,7 +12,6 @@ export default function SearchBar() {
   const { filters, setFilters } = useCardStore();
   const [localQuery, setLocalQuery] = useState(filters.searchQuery);
 
-  // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilters({ searchQuery: localQuery });

@@ -1,15 +1,5 @@
-/**
- * InsightEngine
- *
- * Erkennt Muster im Entscheidungsverhalten des Users und generiert Meta-Insights.
- * Lernt aus der Historie und gibt personalisierte Tipps.
- */
-
 export class InsightEngine {
-  /**
-   * Generiert User-Insights basierend auf allen Entscheidungen
-   * Gibt maximal 3 Insights zurück, um User nicht zu überfordern
-   */
+  
   static generateUserInsights(decisions) {
     if (!decisions || decisions.length === 0) {
       return [];
@@ -17,41 +7,31 @@ export class InsightEngine {
 
     const insights = [];
 
-    // Pattern 1: Bevorzugter Modus
     const modeInsight = this._analyzeModePreference(decisions);
     if (modeInsight) insights.push(modeInsight);
 
-    // Pattern 2: Confidence-Trend
     const confidenceInsight = this._analyzeConfidenceTrend(decisions);
     if (confidenceInsight) insights.push(confidenceInsight);
 
-    // Pattern 3: Kategorie-Fokus
     const categoryInsight = this._analyzeCategoryFocus(decisions);
     if (categoryInsight) insights.push(categoryInsight);
 
-    // Pattern 4: Entscheidungs-Balance (Ja vs Nein)
     const balanceInsight = this._analyzeDecisionBalance(decisions);
     if (balanceInsight) insights.push(balanceInsight);
 
-    // Pattern 5: Schnelligkeit
     const speedInsight = this._analyzeDecisionSpeed(decisions);
     if (speedInsight) insights.push(speedInsight);
 
-    // Maximal 3 Insights zurückgeben (die wichtigsten)
     return insights
       .sort((a, b) => b.importance - a.importance)
       .slice(0, 3);
   }
 
-  /**
-   * Generiert Insights für eine spezifische Entscheidung
-   */
   static generateDecisionInsights(decision, userHistory) {
     if (!decision) return [];
 
     const insights = [];
 
-    // Vergleich mit ähnlichen Entscheidungen
     const similarDecisions = this._findSimilarDecisions(decision, userHistory);
     if (similarDecisions.length > 0) {
       const avgScore = this._averageScore(similarDecisions);
@@ -70,7 +50,6 @@ export class InsightEngine {
       }
     }
 
-    // Preset-Match
     if (decision.weightPreset && decision.weightPreset !== 'balanced') {
       const presetNames = {
         rational: 'rational',
@@ -92,17 +71,12 @@ export class InsightEngine {
     return insights.slice(0, 2);
   }
 
-  // ========== PRIVATE HELPER METHODS ==========
-
-  /**
-   * Analysiert, welchen Modus der User bevorzugt
-   */
   static _analyzeModePreference(decisions) {
     const quickCount = decisions.filter(d => d.mode === 'quick').length;
     const fullCount = decisions.filter(d => d.mode === 'full').length;
     const total = decisions.length;
 
-    if (total < 3) return null; // Zu wenig Daten
+    if (total < 3) return null; 
 
     const quickPercentage = (quickCount / total) * 100;
 
@@ -127,18 +101,13 @@ export class InsightEngine {
     return null;
   }
 
-  /**
-   * Analysiert den Confidence-Trend über Zeit
-   */
   static _analyzeConfidenceTrend(decisions) {
     if (decisions.length < 5) return null;
 
-    // Sortiere nach Datum
     const sorted = [...decisions].sort((a, b) =>
       new Date(a.createdAt) - new Date(b.createdAt)
     );
 
-    // Berechne Durchschnitt erste Hälfte vs zweite Hälfte
     const midpoint = Math.floor(sorted.length / 2);
     const firstHalf = sorted.slice(0, midpoint);
     const secondHalf = sorted.slice(midpoint);
@@ -169,9 +138,6 @@ export class InsightEngine {
     return null;
   }
 
-  /**
-   * Analysiert, in welcher Kategorie User am meisten entscheidet
-   */
   static _analyzeCategoryFocus(decisions) {
     if (decisions.length < 5) return null;
 
@@ -211,9 +177,6 @@ export class InsightEngine {
     return null;
   }
 
-  /**
-   * Analysiert die Balance zwischen Ja/Nein-Entscheidungen
-   */
   static _analyzeDecisionBalance(decisions) {
     if (decisions.length < 5) return null;
 
@@ -246,11 +209,8 @@ export class InsightEngine {
     return null;
   }
 
-  /**
-   * Analysiert wie schnell User entscheidet
-   */
   static _analyzeDecisionSpeed(decisions) {
-    // Berechne Durchschnittszeit zwischen Start und Ende
+    
     const decisionsWithTime = decisions.filter(d => d.createdAt && d.completedAt);
 
     if (decisionsWithTime.length < 3) return null;
@@ -283,9 +243,6 @@ export class InsightEngine {
     return null;
   }
 
-  /**
-   * Findet ähnliche Entscheidungen basierend auf Kategorie und Preset
-   */
   static _findSimilarDecisions(decision, userHistory) {
     if (!userHistory || userHistory.length === 0) return [];
 
@@ -296,9 +253,6 @@ export class InsightEngine {
     );
   }
 
-  /**
-   * Berechnet den Durchschnittsscore einer Liste von Entscheidungen
-   */
   static _averageScore(decisions) {
     if (!decisions || decisions.length === 0) return 0;
 
@@ -306,15 +260,11 @@ export class InsightEngine {
     return sum / decisions.length;
   }
 
-  /**
-   * Generiert einen Insight-Text für Quick Mode basierend auf User-Historie
-   */
   static generateQuickModeMetaInsight(answers, userHistory) {
     if (!userHistory || userHistory.length < 3) {
       return null;
     }
 
-    // Finde Quick Mode Entscheidungen
     const quickDecisions = userHistory.filter(d => d.mode === 'quick');
 
     if (quickDecisions.length < 3) return null;

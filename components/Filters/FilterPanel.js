@@ -1,7 +1,3 @@
-/**
- * Filter Panel - Erweiterte Filter-Optionen
- */
-
 import React from 'react';
 import {
   View,
@@ -60,7 +56,7 @@ export default function FilterPanel() {
       style={styles.container}
       contentContainerStyle={styles.content}
     >
-      {/* Clear Filters */}
+      {}
       {hasActiveFilters && (
         <TouchableOpacity
           style={styles.clearButton}
@@ -70,7 +66,7 @@ export default function FilterPanel() {
         </TouchableOpacity>
       )}
 
-      {/* Categories */}
+      {}
       <View style={styles.filterGroup}>
         <Text style={styles.filterLabel}>Categories</Text>
         <View style={styles.filterRow}>
@@ -101,7 +97,7 @@ export default function FilterPanel() {
         </View>
       </View>
 
-      {/* Priority */}
+      {}
       <View style={styles.filterGroup}>
         <Text style={styles.filterLabel}>Priority</Text>
         <View style={styles.filterRow}>
@@ -132,7 +128,7 @@ export default function FilterPanel() {
         </View>
       </View>
 
-      {/* Type */}
+      {}
       <View style={styles.filterGroup}>
         <Text style={styles.filterLabel}>Type</Text>
         <View style={styles.filterRow}>
@@ -159,7 +155,7 @@ export default function FilterPanel() {
         </View>
       </View>
 
-      {/* Status */}
+      {}
       <View style={styles.filterGroup}>
         <Text style={styles.filterLabel}>Status</Text>
         <View style={styles.filterRow}>
@@ -186,7 +182,7 @@ export default function FilterPanel() {
         </View>
       </View>
 
-      {/* Quick Filters */}
+      {}
       <View style={styles.filterGroup}>
         <Text style={styles.filterLabel}>Quick Filters</Text>
         <View style={styles.filterRow}>

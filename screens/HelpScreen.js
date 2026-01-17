@@ -47,7 +47,7 @@ export default function HelpScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <Text style={styles.headerEmoji}>💡</Text>
           <Text style={styles.headerTitle}>Hilfe & Häufige Fragen</Text>
@@ -56,7 +56,7 @@ export default function HelpScreen() {
           </Text>
         </View>
 
-        {/* FAQ List */}
+        {}
         <View style={styles.faqList}>
           {faqs.map((faq, index) => (
             <View key={index} style={styles.faqCard}>
@@ -83,7 +83,7 @@ export default function HelpScreen() {
           ))}
         </View>
 
-        {/* Support Section */}
+        {}
         <View style={styles.supportSection}>
           <Text style={styles.supportTitle}>Weitere Fragen?</Text>
           <Text style={styles.supportText}>

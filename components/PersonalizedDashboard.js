@@ -2,10 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSurveyData, getPersonalizedInsights } from '../hooks/useSurveyData';
 
-/**
- * Example component showing how to use survey data for personalization
- * This can be integrated into the main dashboard/home screen
- */
 export default function PersonalizedDashboard() {
   const { surveyData, loading } = useSurveyData();
 
@@ -36,7 +32,7 @@ export default function PersonalizedDashboard() {
         </Text>
       </View>
 
-      {/* Primary Goals */}
+      {}
       {insights.primaryGoals.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🎯 Your Goals</Text>
@@ -48,7 +44,7 @@ export default function PersonalizedDashboard() {
         </View>
       )}
 
-      {/* Struggling Areas */}
+      {}
       {insights.strugglingAreas.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📍 Focus Areas</Text>
@@ -62,7 +58,7 @@ export default function PersonalizedDashboard() {
         </View>
       )}
 
-      {/* Current Behavior */}
+      {}
       {insights.currentBehavior && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🧠 Current Pattern</Text>
@@ -72,7 +68,7 @@ export default function PersonalizedDashboard() {
         </View>
       )}
 
-      {/* Personalized Suggestions */}
+      {}
       {insights.suggestions.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>💡 Personalized Tips</Text>
@@ -85,7 +81,7 @@ export default function PersonalizedDashboard() {
         </View>
       )}
 
-      {/* Desired Outcomes */}
+      {}
       {insights.desiredOutcomes.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>✨ What Success Looks Like</Text>

@@ -1,7 +1,3 @@
-/**
- * Card Detail Modal - Vollständige Kartenansicht mit allen Features
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -104,7 +100,7 @@ export default function CardDetail({ visible, card, onClose }) {
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeIcon}>✕</Text>
@@ -131,7 +127,7 @@ export default function CardDetail({ visible, card, onClose }) {
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Title & Description */}
+          {}
           <View style={styles.section}>
             {isEditing ? (
               <>
@@ -182,11 +178,11 @@ export default function CardDetail({ visible, card, onClose }) {
             )}
           </View>
 
-          {/* Meta Information */}
+          {}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Properties</Text>
 
-            {/* Category */}
+            {}
             <View style={styles.property}>
               <Text style={styles.propertyLabel}>Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -211,7 +207,7 @@ export default function CardDetail({ visible, card, onClose }) {
               </ScrollView>
             </View>
 
-            {/* Priority */}
+            {}
             <View style={styles.property}>
               <Text style={styles.propertyLabel}>Priority</Text>
               <View style={styles.propertyOptions}>
@@ -234,7 +230,7 @@ export default function CardDetail({ visible, card, onClose }) {
               </View>
             </View>
 
-            {/* Type */}
+            {}
             <View style={styles.property}>
               <Text style={styles.propertyLabel}>Type</Text>
               <View style={styles.propertyOptions}>
@@ -255,13 +251,13 @@ export default function CardDetail({ visible, card, onClose }) {
             </View>
           </View>
 
-          {/* Checklist */}
+          {}
           <ChecklistSection cardId={card.id} checklist={card.checklist} />
 
-          {/* Comments */}
+          {}
           <CommentsSection cardId={card.id} comments={card.comments} />
 
-          {/* Archive Section */}
+          {}
           <View style={styles.section}>
             <TouchableOpacity
               onPress={handleToggleArchive}
@@ -273,7 +269,7 @@ export default function CardDetail({ visible, card, onClose }) {
             </TouchableOpacity>
           </View>
 
-          {/* Metadata Footer */}
+          {}
           <View style={styles.metadata}>
             <Text style={styles.metadataText}>
               Created: {new Date(card.createdAt).toLocaleDateString()}

@@ -1,39 +1,23 @@
-/**
- * DecisionReview Model
- *
- * Repräsentiert ein Follow-up Review einer vergangenen Entscheidung.
- * Ermöglicht dem User zu reflektieren: War die Entscheidung richtig?
- */
-
 export class DecisionReview {
   constructor(data = {}) {
     this.id = data.id || this._generateId();
-    this.decisionId = data.decisionId; // Referenz zur ursprünglichen Decision
+    this.decisionId = data.decisionId; 
     this.reviewDate = data.reviewDate || new Date().toISOString();
 
-    // Outcome: Wie ist es gelaufen?
-    this.outcome = data.outcome || null; // 'good', 'neutral', 'bad'
+    this.outcome = data.outcome || null; 
 
-    // Würdest du es wieder so entscheiden?
-    this.wouldDecideAgain = data.wouldDecideAgain || null; // true/false
+    this.wouldDecideAgain = data.wouldDecideAgain || null; 
 
-    // Freitext-Notizen
     this.notes = data.notes || '';
 
-    // Was hast du gelernt?
     this.learnedLesson = data.learnedLesson || '';
 
-    // Optional: Emotionale Reaktion
-    this.emotionalState = data.emotionalState || null; // 'happy', 'neutral', 'regret'
+    this.emotionalState = data.emotionalState || null; 
 
-    // Metadata
     this.createdAt = data.createdAt || new Date().toISOString();
     this.updatedAt = data.updatedAt || new Date().toISOString();
   }
 
-  /**
-   * Validierung
-   */
   isValid() {
     return (
       this.decisionId &&
@@ -42,9 +26,6 @@ export class DecisionReview {
     );
   }
 
-  /**
-   * Konvertiert zu Plain Object für Storage
-   */
   toJSON() {
     return {
       id: this.id,
@@ -60,43 +41,30 @@ export class DecisionReview {
     };
   }
 
-  /**
-   * Erstellt DecisionReview aus Plain Object
-   */
   static fromJSON(data) {
     return new DecisionReview(data);
   }
 
-  /**
-   * Berechnet Success Score basierend auf Review
-   * Wird für Confidence Score verwendet
-   */
   getSuccessScore() {
     let score = 0;
 
-    // Outcome-Score (0-50 Punkte)
     if (this.outcome === 'good') {
       score += 50;
     } else if (this.outcome === 'neutral') {
       score += 25;
     }
-    // 'bad' = 0 Punkte
 
-    // Würdest du es wieder so tun? (0-50 Punkte)
     if (this.wouldDecideAgain === true) {
       score += 50;
     } else if (this.wouldDecideAgain === false) {
       score += 0;
     } else {
-      score += 25; // Neutral/Unsicher
+      score += 25; 
     }
 
-    return score; // 0-100
+    return score; 
   }
 
-  /**
-   * Gibt einen menschenlesbaren Summary-Text
-   */
   getSummary() {
     const outcomeText = {
       good: 'positiv verlaufen',
@@ -111,71 +79,46 @@ export class DecisionReview {
     return `Die Entscheidung ist ${outcomeText[this.outcome] || 'noch offen'} und du ${wouldDecideText}.`;
   }
 
-  /**
-   * Generiert eine eindeutige ID
-   */
   _generateId() {
     return `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }
 
-/**
- * Helper-Funktionen für Review-Management
- */
-
-/**
- * Berechnet, wann ein Review fällig ist (7 Tage nach Entscheidung)
- */
 export function calculateReviewDueDate(decisionDate) {
   const date = new Date(decisionDate);
-  date.setDate(date.getDate() + 7); // 7 Tage später
+  date.setDate(date.getDate() + 7); 
   return date.toISOString();
 }
 
-/**
- * Prüft, ob ein Review überfällig ist
- */
 export function isReviewOverdue(reviewDueDate) {
   if (!reviewDueDate) return false;
   return new Date() > new Date(reviewDueDate);
 }
 
-/**
- * Prüft, ob ein Review fällig ist (heute oder überfällig)
- */
 export function isReviewDue(reviewDueDate) {
   if (!reviewDueDate) return false;
   const now = new Date();
   const due = new Date(reviewDueDate);
 
-  // Fällig wenn innerhalb der nächsten 24 Stunden
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   return due <= tomorrow;
 }
 
-/**
- * Findet alle fälligen Reviews in einer Liste von Entscheidungen
- */
 export function findDueReviews(decisions) {
   if (!decisions) return [];
 
   return decisions.filter(decision => {
-    // Hat noch kein Review
+    
     if (decision.review) return false;
 
-    // Hat ein Review-Datum
     if (!decision.reviewScheduledFor) return false;
 
-    // Review ist fällig
     return isReviewDue(decision.reviewScheduledFor);
   });
 }
 
-/**
- * Gruppiert Reviews nach Outcome
- */
 export function groupReviewsByOutcome(reviews) {
   const grouped = {
     good: [],
@@ -192,9 +135,6 @@ export function groupReviewsByOutcome(reviews) {
   return grouped;
 }
 
-/**
- * Berechnet durchschnittlichen Success Score aller Reviews
- */
 export function calculateAverageSuccessScore(reviews) {
   if (!reviews || reviews.length === 0) return 0;
 

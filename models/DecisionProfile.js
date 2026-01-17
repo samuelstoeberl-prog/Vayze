@@ -1,10 +1,3 @@
-/**
- * DecisionProfile Model
- *
- * Erstellt ein Persönlichkeitsprofil basierend auf dem Entscheidungsverhalten.
- * Kategorisiert User in Archetypen und zeigt Stärken/Schwächen.
- */
-
 import { calculateAverageSuccessScore } from './DecisionReview';
 
 export class DecisionProfile {
@@ -12,28 +5,19 @@ export class DecisionProfile {
     this.decisions = decisions;
     this.reviews = reviews;
 
-    // Berechne Metriken
     this.metrics = this._calculateMetrics();
 
-    // Bestimme Archetyp
     this.archetype = this._determineArchetype(this.metrics);
 
-    // Identifiziere Stärken
     this.strengths = this._identifyStrengths(this.metrics);
 
-    // Identifiziere Wachstumsbereiche
     this.growthAreas = this._identifyGrowthAreas(this.metrics);
 
-    // Generiere Empfehlungen
     this.recommendations = this._generateRecommendations(this.archetype, this.metrics);
 
-    // Metadata
     this.generatedAt = new Date().toISOString();
   }
 
-  /**
-   * Berechnet alle Metriken
-   */
   _calculateMetrics() {
     const total = this.decisions.length;
 
@@ -41,33 +25,24 @@ export class DecisionProfile {
       return this._getEmptyMetrics();
     }
 
-    // 1. Durchschnittliche Confidence
     const avgConfidence = this.decisions.reduce((sum, d) => sum + (d.finalScore || 50), 0) / total;
 
-    // 2. Modus-Präferenz
     const quickCount = this.decisions.filter(d => d.mode === 'quick').length;
-    const modePreference = (quickCount / total) * 100; // % Quick Mode
+    const modePreference = (quickCount / total) * 100; 
 
-    // 3. Entscheidungs-Balance
     const yesCount = this.decisions.filter(d => d.recommendation === 'yes').length;
-    const decisionBalance = (yesCount / total) * 100; // % Ja-Entscheidungen
+    const decisionBalance = (yesCount / total) * 100; 
 
-    // 4. Kategorie-Verteilung
     const categoryDistribution = this._getCategoryDistribution();
 
-    // 5. Durchschnittlicher Success Score (aus Reviews)
     const avgSuccessScore = calculateAverageSuccessScore(this.reviews);
 
-    // 6. Preset-Präferenz
     const presetPreference = this._getPresetPreference();
 
-    // 7. Consistency Score (wie konsistent sind die Entscheidungen?)
     const consistency = this._calculateConsistency();
 
-    // 8. Geschwindigkeit (Durchschnittszeit pro Entscheidung)
     const avgDecisionTime = this._calculateAverageDecisionTime();
 
-    // 9. Clarity Trend (werden Entscheidungen klarer über Zeit?)
     const clarityTrend = this._calculateClarityTrend();
 
     return {
@@ -85,13 +60,9 @@ export class DecisionProfile {
     };
   }
 
-  /**
-   * Bestimmt den User-Archetyp
-   */
   _determineArchetype(metrics) {
     const { avgConfidence, modePreference, decisionBalance, avgSuccessScore, consistency } = metrics;
 
-    // Archetyp 1: "Der Sichere Entscheider"
     if (avgConfidence >= 70 && avgSuccessScore >= 70 && consistency >= 70) {
       return {
         id: 'confident_decider',
@@ -99,11 +70,10 @@ export class DecisionProfile {
         icon: '🎯',
         description: 'Du triffst klare Entscheidungen mit hoher Erfolgsquote.',
         traits: ['Selbstsicher', 'Konsistent', 'Erfolgreich'],
-        color: '#10b981' // Green
+        color: '#10b981' 
       };
     }
 
-    // Archetyp 2: "Der Vorsichtige Analytiker"
     if (avgConfidence < 60 && modePreference < 30 && decisionBalance < 40) {
       return {
         id: 'cautious_analyst',
@@ -111,11 +81,10 @@ export class DecisionProfile {
         icon: '🔍',
         description: 'Du analysierst gründlich und entscheidest bedacht.',
         traits: ['Analytisch', 'Vorsichtig', 'Gründlich'],
-        color: '#3b82f6' // Blue
+        color: '#3b82f6' 
       };
     }
 
-    // Archetyp 3: "Der Intuitive Macher"
     if (modePreference >= 70 && avgConfidence >= 60 && decisionBalance >= 60) {
       return {
         id: 'intuitive_doer',
@@ -123,11 +92,10 @@ export class DecisionProfile {
         icon: '⚡',
         description: 'Du vertraust deinem Bauchgefühl und handelst schnell.',
         traits: ['Intuitiv', 'Schnell', 'Risikofreudig'],
-        color: '#f59e0b' // Orange
+        color: '#f59e0b' 
       };
     }
 
-    // Archetyp 4: "Der Wachsende Lerner"
     if (metrics.clarityTrend === 'improving' && metrics.totalDecisions >= 5) {
       return {
         id: 'growing_learner',
@@ -135,11 +103,10 @@ export class DecisionProfile {
         icon: '📈',
         description: 'Du wirst immer besser im Entscheiden.',
         traits: ['Lernbereit', 'Wachsend', 'Reflektiert'],
-        color: '#8b5cf6' // Purple
+        color: '#8b5cf6' 
       };
     }
 
-    // Archetyp 5: "Der Ausgewogene Denker"
     if (avgConfidence >= 50 && avgConfidence <= 70 && Math.abs(decisionBalance - 50) <= 20) {
       return {
         id: 'balanced_thinker',
@@ -147,11 +114,10 @@ export class DecisionProfile {
         icon: '⚖️',
         description: 'Du wägst Chancen und Risiken fair ab.',
         traits: ['Ausgewogen', 'Fair', 'Bedacht'],
-        color: '#06b6d4' // Cyan
+        color: '#06b6d4' 
       };
     }
 
-    // Archetyp 6: "Der Suchende" (niedrige Confidence, inkonsistent)
     if (avgConfidence < 50 && consistency < 50) {
       return {
         id: 'searcher',
@@ -159,11 +125,10 @@ export class DecisionProfile {
         icon: '🧭',
         description: 'Du bist auf der Suche nach deinem Weg.',
         traits: ['Suchend', 'Offen', 'Experimentierfreudig'],
-        color: '#ec4899' // Pink
+        color: '#ec4899' 
       };
     }
 
-    // Default: Balanced
     return {
       id: 'balanced_thinker',
       name: 'Der Ausgewogene Denker',
@@ -174,9 +139,6 @@ export class DecisionProfile {
     };
   }
 
-  /**
-   * Identifiziert Stärken
-   */
   _identifyStrengths(metrics) {
     const strengths = [];
 
@@ -228,12 +190,9 @@ export class DecisionProfile {
       });
     }
 
-    return strengths.slice(0, 4); // Max 4 Stärken
+    return strengths.slice(0, 4); 
   }
 
-  /**
-   * Identifiziert Wachstumsbereiche
-   */
   _identifyGrowthAreas(metrics) {
     const growthAreas = [];
 
@@ -292,16 +251,12 @@ export class DecisionProfile {
       });
     }
 
-    return growthAreas.slice(0, 3); // Max 3 Wachstumsbereiche
+    return growthAreas.slice(0, 3); 
   }
 
-  /**
-   * Generiert personalisierte Empfehlungen
-   */
   _generateRecommendations(archetype, metrics) {
     const recommendations = [];
 
-    // Archetyp-spezifische Empfehlungen
     if (archetype.id === 'confident_decider') {
       recommendations.push({
         text: 'Teile deine Entscheidungen mit anderen, um ihnen zu helfen.',
@@ -324,7 +279,6 @@ export class DecisionProfile {
       });
     }
 
-    // Metriken-basierte Empfehlungen
     if (metrics.totalReviews === 0) {
       recommendations.push({
         text: 'Nutze Reviews, um aus vergangenen Entscheidungen zu lernen.',
@@ -341,8 +295,6 @@ export class DecisionProfile {
 
     return recommendations;
   }
-
-  // ========== HELPER METHODS ==========
 
   _getCategoryDistribution() {
     const distribution = {};
@@ -369,14 +321,11 @@ export class DecisionProfile {
   _calculateConsistency() {
     if (this.decisions.length < 3) return 50;
 
-    // Berechne Standardabweichung der finalScores
     const scores = this.decisions.map(d => d.finalScore || 50);
     const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
     const variance = scores.reduce((sum, s) => sum + Math.pow(s - avg, 2), 0) / scores.length;
     const stdDev = Math.sqrt(variance);
 
-    // Niedrige Standardabweichung = hohe Konsistenz
-    // stdDev 0-10 = 100%, 10-20 = 80%, 20-30 = 60%, etc.
     const consistency = Math.max(0, 100 - (stdDev * 2));
     return consistency;
   }
@@ -432,9 +381,6 @@ export class DecisionProfile {
     };
   }
 
-  /**
-   * Konvertiert zu JSON für Storage
-   */
   toJSON() {
     return {
       metrics: this.metrics,
@@ -446,9 +392,6 @@ export class DecisionProfile {
     };
   }
 
-  /**
-   * Lädt von JSON
-   */
   static fromJSON(data) {
     const profile = Object.create(DecisionProfile.prototype);
     Object.assign(profile, data);

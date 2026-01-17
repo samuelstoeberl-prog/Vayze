@@ -1,47 +1,32 @@
-/**
- * Safe Loading Screen
- *
- * GUARANTEED EXIT PATHS:
- * - Timeout after max duration
- * - Manual escape hatch (dev mode)
- * - Automatic error state after max time
- *
- * NO INFINITE LOADING POSSIBLE.
- */
-
 import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 const SafeLoadingScreen = ({
   message = 'Loading...',
-  timeout = 10000, // 10 seconds default
+  timeout = 10000, 
   onTimeout,
   onManualEscape,
-  showEscapeAfter = 5000, // Show escape button after 5 seconds
+  showEscapeAfter = 5000, 
 }) => {
   const [elapsed, setElapsed] = useState(0);
   const [showEscape, setShowEscape] = useState(false);
 
   useEffect(() => {
-    // Track elapsed time
+    
     const startTime = Date.now();
     const interval = setInterval(() => {
       const now = Date.now();
       const elapsedTime = now - startTime;
       setElapsed(elapsedTime);
 
-      // Show escape button after threshold
       if (elapsedTime >= showEscapeAfter) {
         setShowEscape(true);
       }
 
-      // CRITICAL: Force timeout
       if (elapsedTime >= timeout) {
         clearInterval(interval);
-        if (__DEV__) {
-          console.error(`🚨 [SafeLoadingScreen] FORCED TIMEOUT after ${timeout}ms`);
-        }
+        
         onTimeout?.();
       }
     }, 100);
@@ -55,29 +40,28 @@ const SafeLoadingScreen = ({
     <View style={styles.container}>
       <StatusBar style="dark" />
 
-      {/* Loading Indicator */}
+      {}
       <ActivityIndicator size="large" color="#3b82f6" />
 
-      {/* Message */}
+      {}
       <Text style={styles.message}>{message}</Text>
 
-      {/* Progress Bar */}
+      {}
       <View style={styles.progressBarContainer}>
         <View style={[styles.progressBar, { width: `${progress}%` }]} />
       </View>
 
-      {/* Timer */}
+      {}
       <Text style={styles.timer}>
         {(elapsed / 1000).toFixed(1)}s / {(timeout / 1000).toFixed(0)}s
       </Text>
 
-      {/* Escape Hatch */}
+      {}
       {showEscape && (
         <TouchableOpacity
           style={styles.escapeButton}
           onPress={() => {
-            if (__DEV__) console.log('🚪 [SafeLoadingScreen] Manual escape triggered');
-            onManualEscape?.();
+                        onManualEscape?.();
           }}
         >
           <Text style={styles.escapeButtonText}>⚠️ Taking too long?</Text>
@@ -85,13 +69,12 @@ const SafeLoadingScreen = ({
         </TouchableOpacity>
       )}
 
-      {/* Dev Mode Emergency Exit */}
-      {__DEV__ && (
+      {}
+      {(
         <TouchableOpacity
           style={styles.devButton}
           onPress={() => {
-            if (__DEV__) console.log('🚨 [SafeLoadingScreen] DEV: Emergency exit');
-            onManualEscape?.();
+                        onManualEscape?.();
           }}
         >
           <Text style={styles.devButtonText}>🚨 DEV: FORCE EXIT</Text>

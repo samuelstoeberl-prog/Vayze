@@ -20,7 +20,16 @@
       "Bash(powershell -Command \"Stop-Process -Id 24076 -Force\")",
       "Bash(powershell -Command:*)",
       "Bash($null)",
-      "Bash(del \"services\\authService.js\" \"services\\enhancedAuthService.js\" \"components\\OnboardingFlow.js\" \"components\\SurveyOnboarding.js\" \"screens\\AuthGateway.js\" \"screens\\EnhancedAuthGateway.js\")"
+      "Bash(del \"services\\authService.js\" \"services\\enhancedAuthService.js\" \"components\\OnboardingFlow.js\" \"components\\SurveyOnboarding.js\" \"screens\\AuthGateway.js\" \"screens\\EnhancedAuthGateway.js\")",
+      "Bash(find:*)",
+      "Bash(timeout 5 netstat:*)",
+      "Bash(timeout 10 bash -c \"while ! netstat -ano | findstr :8082 > /dev/null 2>&1; do sleep 1; done; echo ''Port 8082 is now active''\")",
+      "Bash(timeout 5 cat:*)",
+      "Bash(dir:*)",
+      "Bash(timeout 10 powershell:*)",
+      "Bash(grep:*)",
+      "Bash(npx react-native-cli:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

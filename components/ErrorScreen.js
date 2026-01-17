@@ -1,15 +1,3 @@
-/**
- * Error Screen
- *
- * ALWAYS provides:
- * - Clear error message
- * - Retry button
- * - Hard reset button
- * - Factory reset button (dev mode)
- *
- * USER NEVER STUCK.
- */
-
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -86,32 +74,32 @@ const ErrorScreen = ({ error, onRetry, onHardReset, onFactoryReset, retryCount =
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Error Icon */}
+        {}
         <Text style={styles.icon}>{details.icon}</Text>
 
-        {/* Error Title */}
+        {}
         <Text style={styles.title}>{details.title}</Text>
 
-        {/* Error Message */}
+        {}
         <Text style={styles.message}>{details.message}</Text>
 
-        {/* Suggestion */}
+        {}
         {details.suggestion && (
           <View style={styles.suggestionBox}>
             <Text style={styles.suggestionText}>{details.suggestion}</Text>
           </View>
         )}
 
-        {/* Retry Count */}
+        {}
         {retryCount > 0 && (
           <Text style={styles.retryCount}>
             Retry attempts: {retryCount} / 3
           </Text>
         )}
 
-        {/* Actions */}
+        {}
         <View style={styles.actions}>
-          {/* Retry Button */}
+          {}
           {canRetry && onRetry && (
             <TouchableOpacity
               style={[styles.button, styles.primaryButton]}
@@ -122,7 +110,7 @@ const ErrorScreen = ({ error, onRetry, onHardReset, onFactoryReset, retryCount =
             </TouchableOpacity>
           )}
 
-          {/* Hard Reset Button */}
+          {}
           {onHardReset && (
             <TouchableOpacity
               style={[styles.button, styles.secondaryButton]}
@@ -133,8 +121,8 @@ const ErrorScreen = ({ error, onRetry, onHardReset, onFactoryReset, retryCount =
             </TouchableOpacity>
           )}
 
-          {/* Factory Reset (Dev Mode Only) */}
-          {__DEV__ && onFactoryReset && (
+          {}
+          {onFactoryReset && (
             <TouchableOpacity
               style={[styles.button, styles.dangerButton]}
               onPress={onFactoryReset}
@@ -145,8 +133,8 @@ const ErrorScreen = ({ error, onRetry, onHardReset, onFactoryReset, retryCount =
           )}
         </View>
 
-        {/* Debug Info (Dev Mode) */}
-        {__DEV__ && error && (
+        {}
+        {error && (
           <View style={styles.debugBox}>
             <Text style={styles.debugTitle}>Debug Info:</Text>
             <Text style={styles.debugText}>Type: {error.type || 'unknown'}</Text>

@@ -1,29 +1,17 @@
-/**
- * Test/Demo script for Survey Onboarding
- * Use this in React Native Debugger console or a test component
- */
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/**
- * Reset onboarding to initial state
- * Call this to test the onboarding flow again
- */
 export async function resetOnboarding() {
   try {
     await AsyncStorage.removeItem('onboardingCompleted');
     await AsyncStorage.removeItem('surveyAnswers');
-    console.log('✅ Onboarding reset successfully. Restart the app to see the survey.');
+    
     return true;
   } catch (error) {
-    console.error('❌ Error resetting onboarding:', error);
+    
     return false;
   }
 }
 
-/**
- * Get current onboarding status
- */
 export async function getOnboardingStatus() {
   try {
     const completed = await AsyncStorage.getItem('onboardingCompleted');
@@ -35,18 +23,13 @@ export async function getOnboardingStatus() {
       answers: answers ? JSON.parse(answers) : null,
     };
 
-    console.log('📊 Onboarding Status:', status);
     return status;
   } catch (error) {
-    console.error('❌ Error getting status:', error);
+    
     return null;
   }
 }
 
-/**
- * Set mock survey answers for testing
- * Useful for testing personalization features
- */
 export async function setMockAnswers(variant = 'default') {
   const mockAnswers = {
     default: {
@@ -80,53 +63,43 @@ export async function setMockAnswers(variant = 'default') {
   try {
     await AsyncStorage.setItem('surveyAnswers', JSON.stringify(answers));
     await AsyncStorage.setItem('onboardingCompleted', 'true');
-    console.log(`✅ Mock answers set (variant: ${variant}):`, answers);
+    :`, answers);
     return answers;
   } catch (error) {
-    console.error('❌ Error setting mock answers:', error);
+    
     return null;
   }
 }
 
-/**
- * Print all stored data (for debugging)
- */
 export async function debugStorage() {
   try {
     const allKeys = await AsyncStorage.getAllKeys();
     const allData = await AsyncStorage.multiGet(allKeys);
 
-    console.log('🔍 All AsyncStorage Data:');
     allData.forEach(([key, value]) => {
       if (key.includes('onboarding') || key.includes('survey')) {
-        console.log(`  ${key}:`, value);
+        
       }
     });
 
     return allData;
   } catch (error) {
-    console.error('❌ Error debugging storage:', error);
+    
     return null;
   }
 }
 
-/**
- * Clear all app data (use with caution!)
- */
 export async function clearAllData() {
   try {
     await AsyncStorage.clear();
-    console.log('🗑️ All AsyncStorage data cleared');
+    
     return true;
   } catch (error) {
-    console.error('❌ Error clearing data:', error);
+    
     return false;
   }
 }
 
-/**
- * Example: Component for testing in development
- */
 export const OnboardingDebugPanel = () => {
   return (
     <View style={{ padding: 20, backgroundColor: '#f3f4f6' }}>
@@ -185,7 +158,6 @@ const debugButtonTextStyle = {
   fontWeight: '600',
 };
 
-// Export for console usage
 if (typeof window !== 'undefined') {
   window.onboardingDebug = {
     reset: resetOnboarding,
@@ -195,14 +167,9 @@ if (typeof window !== 'undefined') {
     clear: clearAllData,
   };
 
-  console.log(`
-    🎯 Onboarding Debug Tools Loaded!
-
-    Usage in console:
-    - onboardingDebug.reset()         // Reset onboarding
-    - onboardingDebug.status()        // Check current status
-    - onboardingDebug.setMock('default')  // Set mock data
-    - onboardingDebug.debug()         // View storage
-    - onboardingDebug.clear()         // Clear all data
+    - onboardingDebug.status()        
+    - onboardingDebug.setMock('default')  
+    - onboardingDebug.debug()         
+    - onboardingDebug.clear()         
   `);
 }

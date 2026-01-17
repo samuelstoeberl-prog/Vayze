@@ -1,16 +1,3 @@
-/**
- * Onboarding Flow - Premium 6-Screen Experience
- * Visuell identisch zur Web-Version, konvertiert für React Native
- *
- * Screens:
- * 1. Mirror - "They get me"
- * 2. Transformation - "This could help me"
- * 3. Proof - "I can trust this"
- * 4. Identity - "I want to be that person"
- * 5. Gateway - Account Creation
- * 6. Personalization - Survey (3 questions)
- */
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -46,12 +33,11 @@ const OnboardingFlowNew = ({ onComplete }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [surveyQuestion, setSurveyQuestion] = useState(0);
 
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    // Animate in when screen changes
+    
     fadeAnim.setValue(0);
     slideAnim.setValue(20);
 
@@ -82,19 +68,19 @@ const OnboardingFlowNew = ({ onComplete }) => {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // Screen 0, 1, 2: Normal progression
+      
       if (currentScreen < 3) {
         setCurrentScreen(currentScreen + 1);
       }
-      // Screen 3 (Identity): Jump directly to Survey (skip Gateway at index 4)
+      
       else if (currentScreen === 3) {
-        setCurrentScreen(5); // Jump to survey
+        setCurrentScreen(5); 
       }
     });
   };
 
   const handleAccountCreate = () => {
-    // Skip validation - just move to next screen
+    
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -102,7 +88,7 @@ const OnboardingFlowNew = ({ onComplete }) => {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setCurrentScreen(5); // Survey screen
+      setCurrentScreen(5); 
     });
   };
 
@@ -124,7 +110,7 @@ const OnboardingFlowNew = ({ onComplete }) => {
 
   const completeSurvey = () => {
     if (surveyData.context && surveyData.style && surveyData.outcome) {
-      // Just pass survey data - no account creation
+      
       onComplete({
         survey: surveyData,
       });
@@ -165,7 +151,7 @@ const OnboardingFlowNew = ({ onComplete }) => {
       <View style={styles.content}>
         {screens[currentScreen]}
 
-        {/* Progress Dots - Only show for first 4 screens */}
+        {}
         {currentScreen < 5 && (
           <View style={styles.progressContainer}>
             {[0, 1, 2, 3].map((dot) => (
@@ -184,7 +170,6 @@ const OnboardingFlowNew = ({ onComplete }) => {
   );
 };
 
-// Screen 1: The Mirror - "They get me"
 const Screen1Mirror = ({ animate, slideAnim, onNext }) => {
   return (
     <Animated.View
@@ -201,10 +186,10 @@ const Screen1Mirror = ({ animate, slideAnim, onNext }) => {
         end={{ x: 1, y: 1 }}
         style={styles.screenCard}
       >
-        {/* Hero Illustration */}
+        {}
         <View style={styles.illustrationContainer}>
           <Svg width={200} height={200} viewBox="0 0 200 200">
-            {/* Person at crossroads with fog */}
+            {}
             <Circle cx="100" cy="60" r="20" fill="white" opacity="0.9" />
             <Line x1="100" y1="80" x2="100" y2="130" stroke="white" strokeWidth="3" opacity="0.9" />
             <Line x1="100" y1="95" x2="80" y2="110" stroke="white" strokeWidth="3" opacity="0.9" />
@@ -212,17 +197,17 @@ const Screen1Mirror = ({ animate, slideAnim, onNext }) => {
             <Line x1="100" y1="130" x2="85" y2="155" stroke="white" strokeWidth="3" opacity="0.9" />
             <Line x1="100" y1="130" x2="115" y2="155" stroke="white" strokeWidth="3" opacity="0.9" />
 
-            {/* Foggy paths */}
+            {}
             <Path d="M 100 140 Q 60 160 40 180" stroke="white" strokeWidth="2" fill="none" opacity="0.3" strokeDasharray="5,5" />
             <Path d="M 100 140 Q 140 160 160 180" stroke="white" strokeWidth="2" fill="none" opacity="0.3" strokeDasharray="5,5" />
 
-            {/* Fog circles */}
+            {}
             <Circle cx="40" cy="170" r="15" fill="white" opacity="0.15" />
             <Circle cx="160" cy="170" r="15" fill="white" opacity="0.15" />
           </Svg>
         </View>
 
-        {/* Content */}
+        {}
         <View style={styles.contentCenter}>
           <Text style={styles.screen1Title}>
             Du bist nicht schlecht{'\n'}in Entscheidungen.
@@ -245,7 +230,7 @@ const Screen1Mirror = ({ animate, slideAnim, onNext }) => {
           </View>
         </View>
 
-        {/* CTA */}
+        {}
         <TouchableOpacity onPress={onNext} style={styles.buttonWhite} activeOpacity={0.8}>
           <Text style={styles.buttonWhiteText}>Ich fühle das</Text>
           <Feather name="chevron-right" size={20} color="#3B82F6" />
@@ -255,7 +240,6 @@ const Screen1Mirror = ({ animate, slideAnim, onNext }) => {
   );
 };
 
-// Screen 2: Transformation - "This could help me"
 const Screen2Transformation = ({ animate, slideAnim, onNext }) => {
   return (
     <Animated.View
@@ -267,11 +251,11 @@ const Screen2Transformation = ({ animate, slideAnim, onNext }) => {
       ]}
     >
       <View style={[styles.screenCard, styles.screenWhite]}>
-        {/* Split Visual */}
+        {}
         <View style={styles.splitContainer}>
           <View style={styles.splitSide}>
             <Svg width={100} height={100} viewBox="0 0 100 100">
-              {/* Chaotic tangled lines */}
+              {}
               <Path d="M20,30 Q40,10 60,30 T80,50 Q60,70 40,50 T20,30" stroke="#EF4444" strokeWidth="2" fill="none" opacity="0.6" />
               <Path d="M30,20 Q50,40 70,20 T80,60" stroke="#F59E0B" strokeWidth="2" fill="none" opacity="0.6" />
               <Path d="M25,60 Q45,40 65,60" stroke="#DC2626" strokeWidth="2" fill="none" opacity="0.6" />
@@ -283,7 +267,7 @@ const Screen2Transformation = ({ animate, slideAnim, onNext }) => {
 
           <View style={styles.splitSide}>
             <Svg width={100} height={100} viewBox="0 0 100 100">
-              {/* Clean straight path */}
+              {}
               <Path d="M20,50 L80,50" stroke="#3B82F6" strokeWidth="3" fill="none" />
               <Circle cx="80" cy="50" r="8" fill="#3B82F6" />
               <Path d="M70,45 L80,50 L70,55" stroke="white" strokeWidth="2" fill="none" />
@@ -292,7 +276,7 @@ const Screen2Transformation = ({ animate, slideAnim, onNext }) => {
           </View>
         </View>
 
-        {/* Content */}
+        {}
         <View style={styles.contentCenter}>
           <Text style={styles.screen2Title}>
             Stell dir vor, mit Sicherheit zu entscheiden—nicht mit Angst.
@@ -314,7 +298,7 @@ const Screen2Transformation = ({ animate, slideAnim, onNext }) => {
           </View>
         </View>
 
-        {/* CTA */}
+        {}
         <TouchableOpacity onPress={onNext} style={styles.buttonBlue} activeOpacity={0.8}>
           <Text style={styles.buttonBlueText}>Zeig mir, wie</Text>
         </TouchableOpacity>
@@ -323,7 +307,6 @@ const Screen2Transformation = ({ animate, slideAnim, onNext }) => {
   );
 };
 
-// Screen 3: Proof - "I can trust this"
 const Screen3Proof = ({ animate, slideAnim, onNext }) => {
   const [demoStep, setDemoStep] = useState(0);
 
@@ -365,7 +348,7 @@ const Screen3Proof = ({ animate, slideAnim, onNext }) => {
       ]}
     >
       <View style={[styles.screenCard, styles.screenWhite]}>
-        {/* Header accent */}
+        {}
         <LinearGradient
           colors={['#3B82F6', '#2563EB']}
           start={{ x: 0, y: 0 }}
@@ -375,7 +358,7 @@ const Screen3Proof = ({ animate, slideAnim, onNext }) => {
           <Feather name="star" size={24} color="white" />
         </LinearGradient>
 
-        {/* Content */}
+        {}
         <View style={[styles.contentCenter, { marginTop: -16 }]}>
           <Text style={styles.screen3Title}>Sieh es in Aktion.</Text>
 
@@ -384,7 +367,7 @@ const Screen3Proof = ({ animate, slideAnim, onNext }) => {
           </Text>
         </View>
 
-        {/* Phone Mockup Demo */}
+        {}
         <View style={styles.phoneMockupContainer}>
           <View style={styles.phoneMockup}>
             <LinearGradient
@@ -400,7 +383,7 @@ const Screen3Proof = ({ animate, slideAnim, onNext }) => {
           </View>
         </View>
 
-        {/* Progress dots */}
+        {}
         <View style={styles.demoProgressContainer}>
           {[0, 1, 2].map((dot) => (
             <View
@@ -417,7 +400,7 @@ const Screen3Proof = ({ animate, slideAnim, onNext }) => {
           Echte Entscheidungen. Echte Klarheit. Kein Urteil.
         </Text>
 
-        {/* CTA */}
+        {}
         <TouchableOpacity onPress={onNext} style={styles.buttonBlue} activeOpacity={0.8}>
           <Text style={styles.buttonBlueText}>Ich bin bereit, es auszuprobieren</Text>
         </TouchableOpacity>
@@ -426,7 +409,6 @@ const Screen3Proof = ({ animate, slideAnim, onNext }) => {
   );
 };
 
-// Screen 4: Identity - "I want to be that person"
 const Screen4Identity = ({ animate, slideAnim, onNext }) => {
   const statements = [
     'Ich treffe Entscheidungen, denen ich vertraue',
@@ -449,10 +431,10 @@ const Screen4Identity = ({ animate, slideAnim, onNext }) => {
         end={{ x: 1, y: 1 }}
         style={styles.screenCard}
       >
-        {/* Illustration */}
+        {}
         <View style={styles.illustrationContainer}>
           <Svg width={180} height={180} viewBox="0 0 180 180">
-            {/* Person with clear path ahead */}
+            {}
             <Circle cx="90" cy="60" r="22" fill="white" opacity="0.95" />
             <Line x1="90" y1="82" x2="90" y2="135" stroke="white" strokeWidth="4" opacity="0.95" />
             <Line x1="90" y1="100" x2="70" y2="120" stroke="white" strokeWidth="4" opacity="0.95" />
@@ -460,11 +442,11 @@ const Screen4Identity = ({ animate, slideAnim, onNext }) => {
             <Line x1="90" y1="135" x2="75" y2="160" stroke="white" strokeWidth="4" opacity="0.95" />
             <Line x1="90" y1="135" x2="105" y2="160" stroke="white" strokeWidth="4" opacity="0.95" />
 
-            {/* Clear straight path ahead with light */}
+            {}
             <Path d="M 90 140 L 90 175" stroke="white" strokeWidth="3" opacity="0.8" />
             <Circle cx="90" cy="175" r="6" fill="white" opacity="0.9" />
 
-            {/* Warm light rays */}
+            {}
             <Line x1="90" y1="175" x2="60" y2="175" stroke="white" strokeWidth="1" opacity="0.4" />
             <Line x1="90" y1="175" x2="120" y2="175" stroke="white" strokeWidth="1" opacity="0.4" />
             <Line x1="90" y1="175" x2="75" y2="165" stroke="white" strokeWidth="1" opacity="0.3" />
@@ -472,7 +454,7 @@ const Screen4Identity = ({ animate, slideAnim, onNext }) => {
           </Svg>
         </View>
 
-        {/* Content */}
+        {}
         <View style={styles.contentCenter}>
           <Text style={styles.screen1Title}>Du, aber sicherer.</Text>
 
@@ -480,7 +462,7 @@ const Screen4Identity = ({ animate, slideAnim, onNext }) => {
             Nicht perfekt. Nicht stressfrei.{'\n'}Nur klar darüber, was zählt—und{'\n'}selbstsicher nach vorne zu gehen.
           </Text>
 
-          {/* Identity Statements */}
+          {}
           <View style={{ paddingTop: 16 }}>
             {statements.map((statement, idx) => (
               <View key={idx} style={styles.statementRow}>
@@ -495,7 +477,7 @@ const Screen4Identity = ({ animate, slideAnim, onNext }) => {
           </View>
         </View>
 
-        {/* CTA */}
+        {}
         <TouchableOpacity onPress={onNext} style={styles.buttonWhite} activeOpacity={0.8}>
           <Text style={styles.buttonWhiteText}>Das ist, wer ich sein will</Text>
         </TouchableOpacity>
@@ -504,7 +486,6 @@ const Screen4Identity = ({ animate, slideAnim, onNext }) => {
   );
 };
 
-// Screen 5: Gateway (Account Creation) - "Let's do this"
 const Screen5Gateway = ({ animate, slideAnim, accountData, setAccountData, showPassword, setShowPassword, onSubmit }) => {
   return (
     <KeyboardAvoidingView
@@ -527,7 +508,7 @@ const Screen5Gateway = ({ animate, slideAnim, accountData, setAccountData, showP
           keyboardShouldPersistTaps="handled"
           bounces={false}
         >
-        {/* Logo */}
+        {}
         <View style={styles.logoContainer}>
           <LinearGradient
             colors={['#3B82F6', '#2563EB']}
@@ -539,7 +520,7 @@ const Screen5Gateway = ({ animate, slideAnim, accountData, setAccountData, showP
           </LinearGradient>
         </View>
 
-        {/* Content */}
+        {}
         <View style={styles.contentCenter}>
           <Text style={styles.screen5Title}>Lass es uns persönlich machen.</Text>
 
@@ -547,7 +528,7 @@ const Screen5Gateway = ({ animate, slideAnim, accountData, setAccountData, showP
             Um dir Klarheit zu geben, die wirklich zu deinem Leben passt, müssen wir verstehen, was dir am wichtigsten ist.
           </Text>
 
-          {/* Value Propositions */}
+          {}
           <View style={styles.valueProps}>
             <View style={styles.valueProp}>
               <View style={styles.valuePropDot}>
@@ -570,7 +551,7 @@ const Screen5Gateway = ({ animate, slideAnim, accountData, setAccountData, showP
           </View>
         </View>
 
-        {/* Trust Signals */}
+        {}
         <View style={styles.trustSignals}>
           <View style={styles.trustSignal}>
             <Feather name="shield" size={16} color="#6B7280" />
@@ -586,7 +567,7 @@ const Screen5Gateway = ({ animate, slideAnim, accountData, setAccountData, showP
           </View>
         </View>
 
-        {/* Form */}
+        {}
         <View style={styles.form}>
           <TextInput
             style={styles.input}
@@ -640,13 +621,13 @@ const Screen5Gateway = ({ animate, slideAnim, accountData, setAccountData, showP
           </TouchableOpacity>
         </View>
 
-        {/* Legal */}
+        {}
         <View style={styles.legalContainer}>
           <Text style={styles.legalText}>
             Mit dem Fortfahren stimmst du unseren{' '}
             <Text
               style={styles.legalLink}
-              onPress={() => WebBrowser.openBrowserAsync('https://samuelstoeberl-prog.github.io/Vayze-Legal/index.html#terms')}
+              onPress={() => WebBrowser.openBrowserAsync('https:
               accessibilityRole="link"
               accessibilityLabel="Nutzungsbedingungen"
             >
@@ -655,7 +636,7 @@ const Screen5Gateway = ({ animate, slideAnim, accountData, setAccountData, showP
             {' '}und{' '}
             <Text
               style={styles.legalLink}
-              onPress={() => WebBrowser.openBrowserAsync('https://samuelstoeberl-prog.github.io/Vayze-Legal/index.html#privacy')}
+              onPress={() => WebBrowser.openBrowserAsync('https:
               accessibilityRole="link"
               accessibilityLabel="Datenschutzerklärung"
             >
@@ -670,7 +651,6 @@ const Screen5Gateway = ({ animate, slideAnim, accountData, setAccountData, showP
   );
 };
 
-// Screen 6: Personalization - "This is mine now"
 const Screen6Personalization = ({ animate, slideAnim, surveyData, currentQuestion, onSelect, onComplete }) => {
   const questions = [
     {
@@ -737,7 +717,7 @@ const Screen6Personalization = ({ animate, slideAnim, surveyData, currentQuestio
         ]}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Progress */}
+          {}
           <View style={styles.surveyProgress}>
             <View style={styles.surveyProgressHeader}>
               <Text style={styles.surveyProgressText}>Frage {currentQuestion + 1} von 3</Text>
@@ -753,13 +733,13 @@ const Screen6Personalization = ({ animate, slideAnim, surveyData, currentQuestio
             </View>
           </View>
 
-          {/* Question Content */}
+          {}
           <View>
             <Text style={styles.surveyHeadline}>{currentQ.headline}</Text>
 
             {currentQ.intro && <Text style={styles.surveyIntro}>{currentQ.intro}</Text>}
 
-            {/* Options */}
+            {}
             <View style={styles.surveyOptions}>
               {currentQ.options.map((option) => {
                 const isSelected = surveyData[currentQ.id] === option.value;
@@ -782,7 +762,7 @@ const Screen6Personalization = ({ animate, slideAnim, surveyData, currentQuestio
               })}
             </View>
 
-            {/* Validation Message */}
+            {}
             {surveyData[currentQ.id] && (
               <View style={styles.validationMessage}>
                 <Feather name="check" size={20} color="#059669" style={{ marginTop: 2 }} />
@@ -792,7 +772,7 @@ const Screen6Personalization = ({ animate, slideAnim, surveyData, currentQuestio
               </View>
             )}
 
-            {/* Complete Button */}
+            {}
             {isComplete && currentQuestion === 2 && (
               <TouchableOpacity onPress={onComplete} style={[styles.buttonBlue, { marginTop: 32 }]} activeOpacity={0.8}>
                 <Text style={styles.buttonBlueText}>Einrichtung abschließen</Text>
@@ -854,7 +834,7 @@ const styles = StyleSheet.create({
   contentCenter: {
     alignItems: 'center',
   },
-  // Screen 1 styles
+  
   screen1Title: {
     fontSize: 30,
     fontWeight: 'bold',
@@ -905,7 +885,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Screen 2 styles
+  
   splitContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -972,7 +952,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Screen 3 styles
+  
   screen3Header: {
     height: 64,
     marginHorizontal: -32,
@@ -1061,7 +1041,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 32,
   },
-  // Screen 4 styles
+  
   statementRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1073,7 +1053,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     flex: 1,
   },
-  // Screen 5 styles
+  
   logoContainer: {
     alignItems: 'center',
     marginBottom: 32,
@@ -1196,7 +1176,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
-  // Screen 6 styles
+  
   surveyCard: {
     backgroundColor: 'white',
     borderRadius: 24,

@@ -1,10 +1,3 @@
-/**
- * ReviewPromptModal
- *
- * Modal für das Follow-up Review einer Entscheidung
- * Erscheint 7 Tage nach einer Entscheidung
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -22,11 +15,11 @@ export default function ReviewPromptModal({ visible, decision, onClose }) {
   const addReview = useDecisionStore(state => state.addReview);
   const markAsReminded = useDecisionStore(state => state.markAsReminded);
 
-  const [outcome, setOutcome] = useState(null); // 'good', 'neutral', 'bad'
-  const [wouldDecideAgain, setWouldDecideAgain] = useState(null); // true/false
+  const [outcome, setOutcome] = useState(null); 
+  const [wouldDecideAgain, setWouldDecideAgain] = useState(null); 
   const [notes, setNotes] = useState('');
   const [learnedLesson, setLearnedLesson] = useState('');
-  const [emotionalState, setEmotionalState] = useState(null); // 'happy', 'neutral', 'regret'
+  const [emotionalState, setEmotionalState] = useState(null); 
 
   if (!decision) return null;
 
@@ -64,7 +57,7 @@ export default function ReviewPromptModal({ visible, decision, onClose }) {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <ScrollView>
-            {/* Header */}
+            {}
             <View style={styles.header}>
               <Text style={styles.headerIcon}>🔄</Text>
               <Text style={styles.headerTitle}>Review-Zeit!</Text>
@@ -73,7 +66,7 @@ export default function ReviewPromptModal({ visible, decision, onClose }) {
               </Text>
             </View>
 
-            {/* Entscheidung */}
+            {}
             <View style={styles.decisionBox}>
               <Text style={styles.decisionText}>{decision.decision}</Text>
               <View style={styles.decisionMeta}>
@@ -86,7 +79,7 @@ export default function ReviewPromptModal({ visible, decision, onClose }) {
               </View>
             </View>
 
-            {/* Frage 1: Wie ist es gelaufen? */}
+            {}
             <View style={styles.questionSection}>
               <Text style={styles.questionTitle}>Wie ist es gelaufen?</Text>
               <View style={styles.optionGroup}>
@@ -128,7 +121,7 @@ export default function ReviewPromptModal({ visible, decision, onClose }) {
               </View>
             </View>
 
-            {/* Frage 2: Würdest du es wieder so tun? */}
+            {}
             <View style={styles.questionSection}>
               <Text style={styles.questionTitle}>
                 Würdest du es wieder so entscheiden?
@@ -158,7 +151,7 @@ export default function ReviewPromptModal({ visible, decision, onClose }) {
               </View>
             </View>
 
-            {/* Optional: Wie fühlst du dich? */}
+            {}
             <View style={styles.questionSection}>
               <Text style={styles.questionTitle}>Wie fühlst du dich dabei? (optional)</Text>
               <View style={styles.emotionalGroup}>
@@ -182,7 +175,7 @@ export default function ReviewPromptModal({ visible, decision, onClose }) {
               </View>
             </View>
 
-            {/* Optional: Notizen */}
+            {}
             <View style={styles.questionSection}>
               <Text style={styles.questionTitle}>Notizen (optional)</Text>
               <TextInput
@@ -196,7 +189,7 @@ export default function ReviewPromptModal({ visible, decision, onClose }) {
               />
             </View>
 
-            {/* Optional: Gelernte Lektion */}
+            {}
             <View style={styles.questionSection}>
               <Text style={styles.questionTitle}>Was hast du gelernt? (optional)</Text>
               <TextInput
@@ -210,7 +203,7 @@ export default function ReviewPromptModal({ visible, decision, onClose }) {
               />
             </View>
 
-            {/* Actions */}
+            {}
             <View style={styles.actions}>
               <TouchableOpacity
                 style={styles.skipButton}

@@ -1,10 +1,3 @@
-/**
- * DecisionProfileScreen
- *
- * Zeigt das personalisierte Entscheidungsprofil des Users
- * Archetyp, Stärken, Wachstumsbereiche, Empfehlungen
- */
-
 import React, { useEffect } from 'react';
 import {
   View,
@@ -49,13 +42,13 @@ export default function DecisionProfileScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Archetyp Header */}
+      {}
       <View style={[styles.archetypeCard, { borderColor: archetype.color }]}>
         <Text style={styles.archetypeIcon}>{archetype.icon}</Text>
         <Text style={styles.archetypeName}>{archetype.name}</Text>
         <Text style={styles.archetypeDescription}>{archetype.description}</Text>
 
-        {/* Traits */}
+        {}
         <View style={styles.traitsContainer}>
           {archetype.traits.map((trait, idx) => (
             <View key={idx} style={[styles.traitBadge, { backgroundColor: archetype.color }]}>
@@ -65,7 +58,7 @@ export default function DecisionProfileScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Metriken */}
+      {}
       <View style={styles.metricsCard}>
         <Text style={styles.sectionTitle}>📊 Deine Metriken</Text>
 
@@ -92,7 +85,7 @@ export default function DecisionProfileScreen({ navigation }) {
           />
         </View>
 
-        {/* Mode Preference */}
+        {}
         <View style={styles.metricDetail}>
           <Text style={styles.metricDetailLabel}>Bevorzugter Modus</Text>
           <View style={styles.modeBar}>
@@ -108,7 +101,7 @@ export default function DecisionProfileScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Decision Balance */}
+        {}
         <View style={styles.metricDetail}>
           <Text style={styles.metricDetailLabel}>Entscheidungs-Balance</Text>
           <View style={styles.balanceBar}>
@@ -124,7 +117,7 @@ export default function DecisionProfileScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Clarity Trend */}
+        {}
         {metrics.clarityTrend !== 'neutral' && (
           <View style={styles.trendBox}>
             <Text style={styles.trendIcon}>
@@ -137,7 +130,7 @@ export default function DecisionProfileScreen({ navigation }) {
         )}
       </View>
 
-      {/* Stärken */}
+      {}
       {strengths.length > 0 && (
         <View style={styles.strengthsCard}>
           <Text style={styles.sectionTitle}>💪 Deine Stärken</Text>
@@ -153,7 +146,7 @@ export default function DecisionProfileScreen({ navigation }) {
         </View>
       )}
 
-      {/* Wachstumsbereiche */}
+      {}
       {growthAreas.length > 0 && (
         <View style={styles.growthCard}>
           <Text style={styles.sectionTitle}>🌱 Wachstumsbereiche</Text>
@@ -169,7 +162,7 @@ export default function DecisionProfileScreen({ navigation }) {
         </View>
       )}
 
-      {/* Empfehlungen */}
+      {}
       {recommendations.length > 0 && (
         <View style={styles.recommendationsCard}>
           <Text style={styles.sectionTitle}>💡 Empfehlungen</Text>
@@ -187,7 +180,7 @@ export default function DecisionProfileScreen({ navigation }) {
         </View>
       )}
 
-      {/* Kategorie-Verteilung */}
+      {}
       {Object.keys(metrics.categoryDistribution).length > 0 && (
         <View style={styles.categoriesCard}>
           <Text style={styles.sectionTitle}>🎯 Deine Fokus-Bereiche</Text>
@@ -214,7 +207,7 @@ export default function DecisionProfileScreen({ navigation }) {
         </View>
       )}
 
-      {/* Preset Preference */}
+      {}
       <View style={styles.presetCard}>
         <Text style={styles.sectionTitle}>⚖️ Bevorzugte Gewichtung</Text>
         <View style={styles.presetBox}>
@@ -230,9 +223,6 @@ export default function DecisionProfileScreen({ navigation }) {
   );
 }
 
-/**
- * Metric Box Component
- */
 function MetricBox({ label, value, icon }) {
   return (
     <View style={styles.metricBox}>

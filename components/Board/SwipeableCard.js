@@ -1,18 +1,7 @@
-/**
- * SwipeableCard - Professional swipe-to-action card using React Native Animated API
- *
- * Features:
- * - Smooth native gestures with PanResponder
- * - Animated API for smooth animations
- * - Swipe left/right to move between columns
- * - Visual feedback with background colors and progress
- * - Haptic feedback on action
- */
-
 import React, { useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Vibration, Animated, PanResponder } from 'react-native';
 
-const SWIPE_THRESHOLD = 80; // Threshold for triggering action
+const SWIPE_THRESHOLD = 80; 
 const PRIORITY_COLORS = {
   low: '#10b981',
   medium: '#f59e0b',
@@ -39,7 +28,6 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
   const translateX = useRef(new Animated.Value(0)).current;
   const actionTriggered = useRef(false);
 
-  // Get adjacent categories
   const getAdjacentCategories = () => {
     const categories = ['todo', 'in_progress', 'done'];
     const currentIndex = categories.indexOf(card.category);
@@ -51,16 +39,14 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
 
   const adjacentCategories = getAdjacentCategories();
 
-  // Trigger haptic feedback
   const triggerHaptic = () => {
     try {
       Vibration.vibrate(10);
     } catch (error) {
-      // Silent fail
+      console.error('Error triggering haptic feedback:', error);
     }
   };
 
-  // Handle action when threshold is reached
   const handleAction = (targetCategory) => {
     if (!actionTriggered.current && onQuickAction) {
       actionTriggered.current = true;
@@ -69,7 +55,6 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
     }
   };
 
-  // Pan responder for gestures
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -79,7 +64,7 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
         actionTriggered.current = false;
       },
       onPanResponderMove: (_, gestureState) => {
-        // Only allow swipe if adjacent category exists
+        
         if (gestureState.dx < 0 && !adjacentCategories.previous) {
           return;
         }
@@ -91,10 +76,8 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
       onPanResponderRelease: (_, gestureState) => {
         const translation = gestureState.dx;
 
-        // Check if threshold reached
-        // Swipe left (to previous category)
         if (translation < -SWIPE_THRESHOLD && adjacentCategories.previous) {
-          // Animate further left and trigger action
+          
           Animated.timing(translateX, {
             toValue: -300,
             duration: 200,
@@ -104,9 +87,9 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
             translateX.setValue(0);
           });
         }
-        // Swipe right (to next category)
+        
         else if (translation > SWIPE_THRESHOLD && adjacentCategories.next) {
-          // Animate further right and trigger action
+          
           Animated.timing(translateX, {
             toValue: 300,
             duration: 200,
@@ -116,7 +99,7 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
             translateX.setValue(0);
           });
         }
-        // Not enough distance - spring back
+        
         else {
           Animated.spring(translateX, {
             toValue: 0,
@@ -129,7 +112,6 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
     })
   ).current;
 
-  // Animated styles using Animated API
   const leftOpacity = translateX.interpolate({
     inputRange: [-SWIPE_THRESHOLD * 2, -SWIPE_THRESHOLD, 0],
     outputRange: [1, 0.7, 0],
@@ -142,7 +124,6 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
     extrapolate: 'clamp',
   });
 
-  // Due date logic
   const dueDate = card.dueDate ? new Date(card.dueDate) : null;
   const now = new Date();
   const daysUntilDue = dueDate ? Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24)) : null;
@@ -166,7 +147,6 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
     }
   };
 
-  // Quick actions
   const getQuickActions = () => {
     if (card.category === 'done') return [];
     if (card.category === 'todo') return ['in_progress', 'done'];
@@ -192,7 +172,7 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
 
   return (
     <View style={styles.container}>
-      {/* Left Background (Previous Category) */}
+      {}
       {adjacentCategories.previous && (
         <Animated.View style={[styles.background, styles.backgroundLeft, { opacity: leftOpacity }]}>
           <Text style={styles.backgroundText}>
@@ -201,7 +181,7 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
         </Animated.View>
       )}
 
-      {/* Right Background (Next Category) */}
+      {}
       {adjacentCategories.next && (
         <Animated.View style={[styles.background, styles.backgroundRight, { opacity: rightOpacity }]}>
           <Text style={styles.backgroundText}>
@@ -210,7 +190,7 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
         </Animated.View>
       )}
 
-      {/* Swipeable Card */}
+      {}
       <Animated.View
         style={[{ transform: [{ translateX }] }]}
         {...panResponder.panHandlers}
@@ -227,7 +207,7 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
             accessibilityLabel={`${TYPE_ICONS[card.type]} ${card.title}. Priority: ${card.priority}. Swipe to move.`}
             accessibilityRole="button"
           >
-            {/* Top Row: Type Icon + Priority Badge */}
+            {}
             <View style={styles.cardHeader}>
               <Text style={styles.typeIcon}>{TYPE_ICONS[card.type]}</Text>
               <View style={styles.badges}>
@@ -236,12 +216,12 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
               </View>
             </View>
 
-            {/* Title */}
+            {}
             <Text style={styles.cardTitle} numberOfLines={2}>
               {card.title}
             </Text>
 
-            {/* Bottom Row: Due Date + Extras */}
+            {}
             {(showDueDate || hasExtras) && (
               <View style={styles.cardFooter}>
                 {showDueDate && (
@@ -255,7 +235,7 @@ export default function SwipeableCard({ card, onPress, onQuickAction, onMakeDeci
               </View>
             )}
 
-            {/* Quick Actions */}
+            {}
             {(quickActions.length > 0 || card.type === 'decision') && (
               <View style={styles.quickActions}>
                 {card.type === 'decision' && (

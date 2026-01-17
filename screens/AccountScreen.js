@@ -1,13 +1,3 @@
-/**
- * Account Settings Screen
- *
- * Features:
- * - Account Information Display
- * - Change Password (email provider only)
- * - Logout with confirmation
- * - Delete Account with double confirmation
- */
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -39,14 +29,11 @@ const AccountScreen = ({ navigation }) => {
     loadAccountInfo();
   }, []);
 
-  /**
-   * Load account state information
-   */
   const loadAccountInfo = async () => {
     if (!user?.email) return;
 
     try {
-      // Get account state from Firebase
+      
       const currentUser = firebaseAuthService.getCurrentUser();
       if (currentUser) {
         setAccountState({
@@ -57,13 +44,10 @@ const AccountScreen = ({ navigation }) => {
         });
       }
     } catch (error) {
-      console.error('Failed to load account info:', error);
+      
     }
   };
 
-  /**
-   * Handle logout with confirmation
-   */
   const handleLogout = async () => {
     setShowLogoutModal(false);
     setIsLoading(true);
@@ -71,19 +55,14 @@ const AccountScreen = ({ navigation }) => {
     try {
       await signOut();
 
-      // Navigation handled by AuthContext/App.js
-      // User will automatically see login screen when isAuthenticated = false
     } catch (error) {
-      console.error('Logout error:', error);
+      
       Alert.alert('Fehler', 'Abmeldung fehlgeschlagen. Bitte versuche es erneut.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  /**
-   * Handle email verification
-   */
   const handleSendVerificationEmail = async () => {
     if (!user?.email) return;
 
@@ -101,16 +80,13 @@ const AccountScreen = ({ navigation }) => {
         );
       }
     } catch (error) {
-      console.error('Send verification error:', error);
+      
       Alert.alert('Fehler', 'E-Mail konnte nicht gesendet werden. Bitte versuche es später erneut.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  /**
-   * Handle password change request via Firebase
-   */
   const handleChangePassword = async () => {
     if (!user?.email) return;
 
@@ -146,25 +122,16 @@ const AccountScreen = ({ navigation }) => {
     );
   };
 
-  /**
-   * Handle account deletion - first confirmation
-   */
   const handleDeleteAccount = () => {
     setShowDeleteModal(true);
   };
 
-  /**
-   * Handle account deletion - second confirmation
-   */
   const confirmDeleteAccount = () => {
     setShowDeleteModal(false);
     setShowDeleteConfirmModal(true);
     setDeleteConfirmText('');
   };
 
-  /**
-   * Final account deletion
-   */
   const finalDeleteAccount = async () => {
     if (deleteConfirmText.trim().toUpperCase() !== 'LÖSCHEN') {
       Alert.alert('Fehler', 'Bitte gib "LÖSCHEN" ein, um fortzufahren.');
@@ -175,10 +142,9 @@ const AccountScreen = ({ navigation }) => {
     setIsLoading(true);
 
     try {
-      // Delete Firebase account
+      
       await firebaseAuthService.deleteAccount();
 
-      // Sign out (will also clear all local data)
       await signOut();
 
       Alert.alert(
@@ -187,9 +153,8 @@ const AccountScreen = ({ navigation }) => {
         [{ text: 'OK' }]
       );
 
-      // Navigation handled automatically by AuthContext
     } catch (error) {
-      console.error('Account deletion error:', error);
+      
       Alert.alert(
         'Fehler',
         'Konto konnte nicht gelöscht werden. Bitte versuche es später erneut.'
@@ -200,9 +165,6 @@ const AccountScreen = ({ navigation }) => {
     }
   };
 
-  /**
-   * Format date for display
-   */
   const formatDate = (timestamp) => {
     if (!timestamp) return 'Unbekannt';
     return new Date(timestamp).toLocaleDateString('de-DE', {
@@ -215,13 +177,13 @@ const AccountScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Konto-Einstellungen</Text>
           <Text style={styles.headerSubtitle}>Verwalte dein Vayze-Konto</Text>
         </View>
 
-        {/* SECTION 1: Account Information */}
+        {}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>KONTO-INFORMATIONEN</Text>
 
@@ -264,12 +226,12 @@ const AccountScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* SECTION 2: Security (only for email provider) */}
+        {}
         {user?.provider === 'email' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>SICHERHEIT</Text>
 
-            {/* Email Verification - only show if not verified */}
+            {}
             {accountState && !accountState.emailVerified && (
               <TouchableOpacity
                 style={[styles.actionButton, styles.verificationButton]}
@@ -310,7 +272,7 @@ const AccountScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* SECTION 3: Danger Zone */}
+        {}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, styles.dangerTitle]}>ACHTUNG</Text>
 
@@ -333,7 +295,7 @@ const AccountScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* SECTION 4: Logout */}
+        {}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.logoutButton}
@@ -348,11 +310,11 @@ const AccountScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Footer Spacing */}
+        {}
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Logout Confirmation Modal */}
+      {}
       <Modal
         visible={showLogoutModal}
         transparent={true}
@@ -385,7 +347,7 @@ const AccountScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Delete Account - First Confirmation Modal */}
+      {}
       <Modal
         visible={showDeleteModal}
         transparent={true}
@@ -420,7 +382,7 @@ const AccountScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Delete Account - Second Confirmation Modal */}
+      {}
       <Modal
         visible={showDeleteConfirmModal}
         transparent={true}
@@ -473,7 +435,7 @@ const AccountScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Loading Overlay */}
+      {}
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#4A90E2" />

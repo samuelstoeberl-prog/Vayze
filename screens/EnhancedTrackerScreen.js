@@ -1,25 +1,24 @@
-/**
- * EnhancedTrackerScreen
- *
- * Tracker mit Insights, Confidence Score und Pattern Recognition
- * Zeigt nicht nur ZAHLEN, sondern BEDEUTUNG
- */
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Dimensions
+  Dimensions,
+  Platform
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDecisionStore } from '../store/decisionStore';
 import { ConfidenceScoreCalculator } from '../utils/confidenceScoreCalculator';
+import { TrendingUpIcon, CalendarIcon } from '../components/Icons';
 
 const { width } = Dimensions.get('window');
 
 export default function EnhancedTrackerScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const {
     decisions,
     reviews,
@@ -29,8 +28,15 @@ export default function EnhancedTrackerScreen({ navigation }) {
     getStatistics
   } = useDecisionStore();
 
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.toLocaleString('de-DE', { month: 'long' })} ${now.getFullYear()}`;
+  });
+
+  const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+
   useEffect(() => {
-    // Update Confidence Score beim Laden
     updateConfidenceScore();
   }, [decisions, reviews]);
 
@@ -38,460 +44,381 @@ export default function EnhancedTrackerScreen({ navigation }) {
   const insights = getUserInsights();
   const factorExplanations = ConfidenceScoreCalculator.getFactorExplanations();
 
+  // Calendar helper functions
+  const getDaysInMonth = (month, year) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (month, year) => {
+    const day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1; // Convert Sunday=0 to Monday=0
+  };
+
+  const handlePreviousMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+    const newDate = new Date(currentYear, currentMonth - 1);
+    setSelectedMonth(`${newDate.toLocaleString('de-DE', { month: 'long' })} ${newDate.getFullYear()}`);
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+    const newDate = new Date(currentYear, currentMonth + 1);
+    setSelectedMonth(`${newDate.toLocaleString('de-DE', { month: 'long' })} ${newDate.getFullYear()}`);
+  };
+
+  const daysInMonth = getDaysInMonth(currentMonth, currentYear);
+  const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
+  const weekDays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+  // Calculate streak (placeholder - you can implement actual streak logic)
+  const currentStreak = 0;
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Header: Confidence Score */}
-      {confidenceScore && (
-        <View style={styles.scoreCard}>
-          <View style={styles.scoreHeader}>
-            <Text style={styles.scoreTitle}>Dein Decision Confidence Score</Text>
+    <View style={styles.mainContainer}>
+      <StatusBar style="light" />
+
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={['#3b82f6', '#2563eb']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.headerGradient, { paddingTop: insets.top + 56 }]}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <TrendingUpIcon size={32} color="#FFFFFF" strokeWidth={2.5} />
+            <Text style={styles.headerTitle}>Dein Fortschritt</Text>
+          </View>
+
+          {/* Stats Cards */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCardGradient}>
+              <Text style={styles.statLabel}>Entscheidungen</Text>
+              <Text style={styles.statValue}>{stats.totalDecisions}</Text>
+            </View>
+            <View style={styles.statCardGradient}>
+              <View style={styles.streakRow}>
+                <Text style={styles.statLabel}>Tage Streak</Text>
+                <Text style={styles.fireEmoji}>🔥</Text>
+              </View>
+              <Text style={styles.statValue}>{currentStreak}</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollContentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Calendar */}
+        <View style={styles.calendarCard}>
+          {/* Month Navigation */}
+          <View style={styles.monthNavigation}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Profile')}
+              style={styles.monthButton}
+              onPress={handlePreviousMonth}
             >
-              <Text style={styles.scoreLink}>Details ›</Text>
+              <Text style={styles.monthButtonText}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.monthTitle}>{selectedMonth}</Text>
+            <TouchableOpacity
+              style={styles.monthButton}
+              onPress={handleNextMonth}
+            >
+              <Text style={styles.monthButtonText}>→</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Score Circle */}
-          <View style={styles.scoreCircle}>
-            <Text style={styles.scoreValue}>{confidenceScore.score}</Text>
-            <Text style={styles.scoreLabel}>{confidenceScore.message}</Text>
+          {/* Week Day Headers */}
+          <View style={styles.weekDayRow}>
+            {weekDays.map((day) => (
+              <Text key={day} style={styles.weekDayText}>
+                {day}
+              </Text>
+            ))}
           </View>
 
-          {/* Trend */}
-          {confidenceScore.trend !== 'neutral' && (
-            <View style={styles.trendBadge}>
-              <Text style={styles.trendText}>
-                {confidenceScore.trend === 'improving' ? '📈 Steigend' : '📉 Sinkend'}
-              </Text>
-            </View>
-          )}
+          {/* Calendar Grid */}
+          <View style={styles.calendarGrid}>
+            {/* Empty cells for days before month starts */}
+            {Array.from({ length: firstDay }).map((_, index) => (
+              <View key={`empty-${index}`} style={styles.dayCell} />
+            ))}
 
-          {/* Faktoren */}
-          <View style={styles.factorsGrid}>
-            {Object.entries(confidenceScore.factors).map(([key, value]) => {
-              const factorInfo = factorExplanations[key];
+            {/* Days of the month */}
+            {Array.from({ length: daysInMonth }).map((_, index) => {
+              const day = index + 1;
+              const isToday =
+                day === new Date().getDate() &&
+                currentMonth === new Date().getMonth() &&
+                currentYear === new Date().getFullYear();
+
               return (
-                <View key={key} style={styles.factorItem}>
-                  <Text style={styles.factorIcon}>{factorInfo.icon}</Text>
-                  <Text style={styles.factorName}>{factorInfo.name}</Text>
-                  <Text style={styles.factorValue}>{value}%</Text>
-                </View>
+                <TouchableOpacity
+                  key={day}
+                  style={[
+                    styles.dayCell,
+                    isToday && styles.todayCell
+                  ]}
+                >
+                  <Text style={[
+                    styles.dayText,
+                    isToday && styles.todayText
+                  ]}>
+                    {day}
+                  </Text>
+                </TouchableOpacity>
               );
             })}
           </View>
-
-          {/* Insights */}
-          {confidenceScore.insights && confidenceScore.insights.length > 0 && (
-            <View style={styles.scoreInsights}>
-              {confidenceScore.insights.map((insight, idx) => (
-                <Text key={idx} style={styles.scoreInsightText}>
-                  {insight}
-                </Text>
-              ))}
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Statistiken */}
-      <View style={styles.statsCard}>
-        <Text style={styles.cardTitle}>📊 Statistiken</Text>
-
-        <View style={styles.statsGrid}>
-          <StatBox
-            label="Entscheidungen"
-            value={stats.totalDecisions}
-            icon="🎯"
-          />
-          <StatBox
-            label="Reviews"
-            value={stats.totalReviews}
-            icon="🔄"
-          />
-          <StatBox
-            label="Ø Klarheit"
-            value={`${stats.avgConfidence}%`}
-            icon="💡"
-          />
-          <StatBox
-            label="Review-Rate"
-            value={`${Math.round(stats.reviewRate)}%`}
-            icon="📈"
-          />
         </View>
 
-        {/* Empfehlungs-Verteilung */}
-        <View style={styles.distributionSection}>
-          <Text style={styles.distributionTitle}>Empfehlungen</Text>
-          <View style={styles.distributionBars}>
-            <DistributionBar
-              label="JA"
-              count={stats.yesCount}
-              total={stats.totalDecisions}
-              color="#10b981"
-            />
-            <DistributionBar
-              label="NEIN"
-              count={stats.noCount}
-              total={stats.totalDecisions}
-              color="#ef4444"
-            />
-            <DistributionBar
-              label="UNKLAR"
-              count={stats.unclearCount}
-              total={stats.totalDecisions}
-              color="#f59e0b"
-            />
-          </View>
-        </View>
-
-        {/* Modus-Verteilung */}
-        <View style={styles.distributionSection}>
-          <Text style={styles.distributionTitle}>Modus</Text>
-          <View style={styles.distributionBars}>
-            <DistributionBar
-              label="Quick"
-              count={stats.quickCount}
-              total={stats.totalDecisions}
-              color="#3b82f6"
-            />
-            <DistributionBar
-              label="Full"
-              count={stats.fullCount}
-              total={stats.totalDecisions}
-              color="#8b5cf6"
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* User Insights */}
-      {insights.length > 0 && (
-        <View style={styles.insightsCard}>
-          <Text style={styles.cardTitle}>✨ Deine Muster</Text>
-          {insights.map((insight, idx) => (
-            <View key={idx} style={styles.insightBox}>
-              <Text style={styles.insightIcon}>{insight.icon}</Text>
-              <View style={styles.insightContent}>
-                <Text style={styles.insightTitle}>{insight.text}</Text>
-                <Text style={styles.insightDetail}>{insight.detail}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Aktionen */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('Profile')}
+        {/* Summary Card */}
+        <LinearGradient
+          colors={['#dbeafe', '#bfdbfe']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.summaryCard}
         >
-          <Text style={styles.actionButtonText}>👤 Mein Profil</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('Timeline')}
-        >
-          <Text style={styles.actionButtonText}>📅 Timeline</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Empty State */}
-      {decisions.length === 0 && (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🎯</Text>
-          <Text style={styles.emptyTitle}>Noch keine Entscheidungen</Text>
-          <Text style={styles.emptyText}>
-            Treffe deine erste Entscheidung, um deinen Score zu sehen!
+          <Text style={styles.summaryTitle}>
+            Gesamt: {stats.totalDecisions} Entscheidungen
           </Text>
-        </View>
-      )}
+          <Text style={styles.summarySubtitle}>
+            Dieser Monat: 0 Entscheidungen
+          </Text>
+        </LinearGradient>
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
-  );
-}
+        {/* Confidence Score Section (if available) */}
+        {confidenceScore && (
+          <View style={styles.confidenceCard}>
+            <Text style={styles.cardTitle}>📊 Dein Score</Text>
+            <View style={styles.scoreCircle}>
+              <Text style={styles.scoreValue}>{confidenceScore.score}</Text>
+              <Text style={styles.scoreLabel}>{confidenceScore.message}</Text>
+            </View>
 
-/**
- * Stat Box Component
- */
-function StatBox({ label, value, icon }) {
-  return (
-    <View style={styles.statBox}>
-      <Text style={styles.statIcon}>{icon}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
+            {confidenceScore.trend !== 'neutral' && (
+              <View style={styles.trendBadge}>
+                <Text style={styles.trendText}>
+                  {confidenceScore.trend === 'improving' ? '📈 Steigend' : '📉 Sinkend'}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
-/**
- * Distribution Bar Component
- */
-function DistributionBar({ label, count, total, color }) {
-  const percentage = total > 0 ? (count / total) * 100 : 0;
-
-  return (
-    <View style={styles.distributionBar}>
-      <View style={styles.distributionBarHeader}>
-        <Text style={styles.distributionBarLabel}>{label}</Text>
-        <Text style={styles.distributionBarCount}>
-          {count} ({Math.round(percentage)}%)
-        </Text>
-      </View>
-      <View style={styles.distributionBarTrack}>
-        <View
-          style={[
-            styles.distributionBarFill,
-            { width: `${percentage}%`, backgroundColor: color }
-          ]}
-        />
-      </View>
+        <View style={{ height: 20 }} />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: '#0f172a'
+    backgroundColor: '#f8fafc',
   },
-  scoreCard: {
-    backgroundColor: '#1e293b',
-    margin: 16,
-    borderRadius: 20,
-    padding: 24
+  headerGradient: {
+    // paddingTop wird dynamisch gesetzt
+    paddingBottom: 32,
+    paddingHorizontal: 24,
   },
-  scoreHeader: {
+  headerContent: {
+    gap: 24,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  statCardGradient: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backdropFilter: 'blur(10px)',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#bfdbfe',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  fireEmoji: {
+    fontSize: 20,
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    padding: 24,
+    paddingTop: 24,
+  },
+  calendarCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 24,
+  },
+  monthNavigation: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24
+    marginBottom: 24,
   },
-  scoreTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff'
-  },
-  scoreLink: {
-    fontSize: 16,
-    color: '#3b82f6',
-    fontWeight: '600'
-  },
-  scoreCircle: {
+  monthButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20
   },
-  scoreValue: {
-    fontSize: 64,
-    fontWeight: 'bold',
-    color: '#ffffff'
+  monthButtonText: {
+    fontSize: 20,
+    color: '#475569',
   },
-  scoreLabel: {
-    fontSize: 16,
-    color: '#94a3b8',
-    marginTop: 8
-  },
-  trendBadge: {
-    alignSelf: 'center',
-    backgroundColor: '#0f172a',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 20
-  },
-  trendText: {
-    fontSize: 14,
-    color: '#ffffff',
-    fontWeight: '600'
-  },
-  factorsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 20
-  },
-  factorItem: {
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    padding: 12,
-    width: (width - 88) / 2,
-    alignItems: 'center'
-  },
-  factorIcon: {
-    fontSize: 24,
-    marginBottom: 8
-  },
-  factorName: {
-    fontSize: 12,
-    color: '#94a3b8',
-    marginBottom: 4
-  },
-  factorValue: {
+  monthTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff'
+    color: '#0f172a',
   },
-  scoreInsights: {
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    padding: 16
+  weekDayRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
   },
-  scoreInsightText: {
+  weekDayText: {
+    flex: 1,
+    textAlign: 'center',
     fontSize: 14,
-    color: '#e2e8f0',
-    marginBottom: 8,
-    lineHeight: 20
+    fontWeight: '600',
+    color: '#64748b',
   },
-  statsCard: {
-    backgroundColor: '#1e293b',
-    margin: 16,
-    marginTop: 0,
-    borderRadius: 20,
-    padding: 24
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  dayCell: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
+  },
+  todayCell: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+  },
+  dayText: {
+    fontSize: 16,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  todayText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  summaryCard: {
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e3a8a',
+    marginBottom: 8,
+  },
+  summarySubtitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1e40af',
+  },
+  confidenceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 20
+    color: '#0f172a',
+    marginBottom: 20,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24
-  },
-  statBox: {
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    padding: 16,
-    width: (width - 88) / 2,
-    alignItems: 'center'
-  },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: 8
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 4
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#94a3b8'
-  },
-  distributionSection: {
-    marginBottom: 20
-  },
-  distributionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#94a3b8',
-    marginBottom: 12
-  },
-  distributionBars: {
-    gap: 12
-  },
-  distributionBar: {
-    marginBottom: 0
-  },
-  distributionBarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8
-  },
-  distributionBarLabel: {
-    fontSize: 14,
-    color: '#ffffff',
-    fontWeight: '600'
-  },
-  distributionBarCount: {
-    fontSize: 14,
-    color: '#94a3b8'
-  },
-  distributionBarTrack: {
-    height: 8,
-    backgroundColor: '#0f172a',
-    borderRadius: 4,
-    overflow: 'hidden'
-  },
-  distributionBarFill: {
-    height: '100%',
-    borderRadius: 4
-  },
-  insightsCard: {
-    backgroundColor: '#1e293b',
-    margin: 16,
-    marginTop: 0,
-    borderRadius: 20,
-    padding: 24
-  },
-  insightBox: {
-    flexDirection: 'row',
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12
-  },
-  insightIcon: {
-    fontSize: 28,
-    marginRight: 12
-  },
-  insightContent: {
-    flex: 1
-  },
-  insightTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 4
-  },
-  insightDetail: {
-    fontSize: 14,
-    color: '#94a3b8',
-    lineHeight: 20
-  },
-  actions: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    gap: 12
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center'
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff'
-  },
-  emptyState: {
+  scoreCircle: {
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40
+    marginBottom: 16,
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16
-  },
-  emptyTitle: {
-    fontSize: 20,
+  scoreValue: {
+    fontSize: 48,
     fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 8
+    color: '#1e40af',
   },
-  emptyText: {
+  scoreLabel: {
+    fontSize: 16,
+    color: '#64748b',
+    marginTop: 8,
+  },
+  trendBadge: {
+    alignSelf: 'center',
+    backgroundColor: '#dbeafe',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  trendText: {
     fontSize: 14,
-    color: '#94a3b8',
-    textAlign: 'center'
-  }
+    color: '#1e40af',
+    fontWeight: '600',
+  },
 });

@@ -1,8 +1,3 @@
-/**
- * Vayze Splash Screen
- * Premium animated splash screen with smooth transitions
- */
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -19,7 +14,6 @@ const { width, height } = Dimensions.get('window');
 export default function SplashScreen({ onFinish }) {
   const [contentLoaded, setContentLoaded] = useState(false);
 
-  // Animated values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.96)).current;
   const logoScaleAnim = useRef(new Animated.Value(0.5)).current;
@@ -35,12 +29,11 @@ export default function SplashScreen({ onFinish }) {
   const exitOpacityAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Start animations
+    
     const contentTimer = setTimeout(() => setContentLoaded(true), 100);
 
-    // Sequence of animations
     Animated.sequence([
-      // Logo appearance
+      
       Animated.parallel([
         Animated.timing(logoScaleAnim, {
           toValue: 1,
@@ -53,7 +46,7 @@ export default function SplashScreen({ onFinish }) {
           useNativeDriver: true,
         }),
       ]),
-      // Draw paths
+      
       Animated.parallel([
         Animated.timing(pathLeftAnim, {
           toValue: 0,
@@ -68,7 +61,7 @@ export default function SplashScreen({ onFinish }) {
           useNativeDriver: true,
         }),
       ]),
-      // Person icon
+      
       Animated.parallel([
         Animated.timing(personScaleAnim, {
           toValue: 1,
@@ -81,7 +74,7 @@ export default function SplashScreen({ onFinish }) {
           useNativeDriver: true,
         }),
       ]),
-      // Arrows
+      
       Animated.timing(arrowOpacityAnim, {
         toValue: 1,
         duration: 400,
@@ -90,7 +83,6 @@ export default function SplashScreen({ onFinish }) {
       }),
     ]).start();
 
-    // Content wrapper animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -104,7 +96,6 @@ export default function SplashScreen({ onFinish }) {
       }),
     ]).start();
 
-    // Text animations
     setTimeout(() => {
       Animated.parallel([
         Animated.timing(textSlideAnim, {
@@ -120,7 +111,6 @@ export default function SplashScreen({ onFinish }) {
       ]).start();
     }, 400);
 
-    // Loading dots animation (loop)
     Animated.loop(
       Animated.sequence([
         Animated.timing(dotsAnim, {
@@ -136,7 +126,6 @@ export default function SplashScreen({ onFinish }) {
       ])
     ).start();
 
-    // Exit animation
     const exitTimer = setTimeout(() => {
       Animated.timing(exitOpacityAnim, {
         toValue: 0,
@@ -164,13 +153,13 @@ export default function SplashScreen({ onFinish }) {
     >
       <StatusBar barStyle="light-content" backgroundColor="#3B82F6" />
 
-      {/* Ambient Background Glows */}
+      {}
       <View style={styles.ambientLayer}>
         <View style={[styles.glow, styles.glowPrimary]} />
         <View style={[styles.glow, styles.glowSecondary]} />
       </View>
 
-      {/* Content Wrapper */}
+      {}
       <Animated.View
         style={[
           styles.contentWrapper,
@@ -186,7 +175,7 @@ export default function SplashScreen({ onFinish }) {
           }
         ]}
       >
-        {/* Logo Container */}
+        {}
         <Animated.View
           style={[
             styles.logoContainer,
@@ -196,10 +185,10 @@ export default function SplashScreen({ onFinish }) {
             }
           ]}
         >
-          {/* Ring Animation */}
+          {}
           <View style={styles.logoRing} />
 
-          {/* SVG Logo */}
+          {}
           <Svg width={140} height={140} viewBox="0 0 100 100">
             <Defs>
               <LinearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -209,7 +198,7 @@ export default function SplashScreen({ onFinish }) {
             </Defs>
 
             <G transform="translate(0, -4)">
-              {/* Left Path */}
+              {}
               <AnimatedPath
                 d="M 50 85 Q 50 62 33 38"
                 stroke="white"
@@ -221,7 +210,7 @@ export default function SplashScreen({ onFinish }) {
                 strokeDashoffset={pathLeftAnim}
               />
 
-              {/* Right Path */}
+              {}
               <AnimatedPath
                 d="M 50 85 Q 50 62 67 38"
                 stroke="white"
@@ -233,13 +222,13 @@ export default function SplashScreen({ onFinish }) {
                 strokeDashoffset={pathRightAnim}
               />
 
-              {/* Person Icon */}
+              {}
               <AnimatedG opacity={personOpacityAnim} scale={personScaleAnim}>
                 <Circle cx="50" cy="78" r="4" fill="white" />
                 <Line x1="50" y1="82" x2="50" y2="88" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
               </AnimatedG>
 
-              {/* Arrows */}
+              {}
               <AnimatedG opacity={arrowOpacityAnim}>
                 <Path d="M 32 38 L 35 40 L 32 42" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 <Path d="M 68 38 L 65 40 L 68 42" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -248,7 +237,7 @@ export default function SplashScreen({ onFinish }) {
           </Svg>
         </Animated.View>
 
-        {/* Brand Text */}
+        {}
         <Animated.View
           style={[
             styles.brandWrapper,
@@ -262,7 +251,7 @@ export default function SplashScreen({ onFinish }) {
           <Text style={styles.brandTagline}>Entscheidungen. Durchdacht.</Text>
         </Animated.View>
 
-        {/* Loading Dots */}
+        {}
         <View style={styles.loadingDots}>
           {[0, 1, 2].map((i) => (
             <Animated.View
@@ -286,7 +275,7 @@ export default function SplashScreen({ onFinish }) {
           ))}
         </View>
 
-        {/* Version Badge */}
+        {}
         <Animated.Text style={[styles.versionBadge, { opacity: textOpacityAnim }]}>
           v1.0.0
         </Animated.Text>
@@ -295,7 +284,6 @@ export default function SplashScreen({ onFinish }) {
   );
 }
 
-// Animated SVG components
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedG = Animated.createAnimatedComponent(G);
 

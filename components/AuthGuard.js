@@ -1,22 +1,7 @@
-/**
- * Auth Guard Components
- *
- * Protect screens/routes behind authentication
- *
- * Usage:
- * <AuthGuard>
- *   <ProtectedScreen />
- * </AuthGuard>
- */
-
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import useSecureAuth from '../hooks/useSecureAuth';
 
-/**
- * Auth Guard - Renders children only if authenticated
- * Why: Prevent unauthorized access to protected screens
- */
 export function AuthGuard({ children, fallback = null }) {
   const { isAuthenticated, isLoading } = useSecureAuth();
 
@@ -31,10 +16,6 @@ export function AuthGuard({ children, fallback = null }) {
   return <>{children}</>;
 }
 
-/**
- * Email Verification Guard
- * Why: Enforce email verification before accessing certain features
- */
 export function EmailVerificationGuard({ children, fallback = null }) {
   const { isEmailVerified, isLoading } = useSecureAuth();
 
@@ -49,10 +30,6 @@ export function EmailVerificationGuard({ children, fallback = null }) {
   return <>{children}</>;
 }
 
-/**
- * Account Status Guard
- * Why: Block access if account is locked or suspended
- */
 export function AccountStatusGuard({ children, fallback = null }) {
   const { isAccountLocked, accountState, isLoading } = useSecureAuth();
 
@@ -71,10 +48,6 @@ export function AccountStatusGuard({ children, fallback = null }) {
   return <>{children}</>;
 }
 
-/**
- * Combined Auth + Verification Guard
- * Why: Most common use case - require auth AND verified email
- */
 export function ProtectedRoute({ children, requireVerification = false, fallback = null }) {
   return (
     <AuthGuard fallback={fallback}>
@@ -91,9 +64,6 @@ export function ProtectedRoute({ children, requireVerification = false, fallback
   );
 }
 
-/**
- * Default Screens
- */
 function AuthLoadingScreen() {
   return (
     <View style={styles.centerContainer}>

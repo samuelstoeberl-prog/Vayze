@@ -1,22 +1,3 @@
-/**
- * Card Preview - Minimale Kartenansicht im Kanban Board (iOS-optimiert)
- * Progressive Disclosure: Details nur im Modal
- *
- * Features:
- * - Long Press (400ms): iOS-optimierte Aktivierung des Drag-Modus
- * - Haptic Feedback: Subtile Vibration beim Start des Dragging
- * - Drag & Drop: Ziehe die Card nach links/rechts in eine andere Spalte
- * - Visual Feedback:
- *   - Schatten und erhöhte Elevation während Drag
- *   - Skalierung (1.08x beim Drag, 0.98x beim Press)
- *   - Leichte Transparenz (95%) für bessere Sichtbarkeit
- *   - Richtungs-Indikatoren zeigen verfügbare Spalten
- * - iOS-like Spring Physics: Natürliche Zurückspring-Animation
- * - Intelligente Gesten-Erkennung: Unterscheidet zwischen Tap, Long-Press und Drag
- * - Performance-optimiert: Native driver wo möglich
- * - Auto-Reset: Springt zurück wenn nicht weit genug gezogen
- */
-
 import React, { useRef, useState } from 'react';
 import {
   View,
@@ -42,58 +23,53 @@ const TYPE_ICONS = {
   note: '📝',
 };
 
-// Card Type Styling - Visual Differentiation
 const TYPE_STYLES = {
   decision: {
     borderLeftWidth: 3,
-    borderLeftColor: '#3b82f6', // Soft blue
+    borderLeftColor: '#3b82f6', 
   },
   task: {
     borderLeftWidth: 3,
-    borderLeftColor: '#e2e8f0', // Neutral
+    borderLeftColor: '#e2e8f0', 
   },
   idea: {
     borderLeftWidth: 3,
-    borderLeftColor: '#8b5cf6', // Purple
+    borderLeftColor: '#8b5cf6', 
     borderStyle: 'dashed',
   },
   note: {
-    backgroundColor: '#fefce8', // Slight yellow tint
+    backgroundColor: '#fefce8', 
     borderLeftWidth: 3,
     borderLeftColor: '#fbbf24',
   },
 };
 
-const SWIPE_THRESHOLD = 60; // Minimum swipe distance to trigger action
-const LONG_PRESS_DURATION = 300; // Reduced for faster activation (was 400ms)
-const DRAG_SCALE = 1.08; // Scale factor when dragging
-const DRAG_OPACITY = 0.95; // Slight transparency when dragging
-const PRESS_SCALE = 0.98; // Scale down on press to show feedback
+const SWIPE_THRESHOLD = 60; 
+const LONG_PRESS_DURATION = 300; 
+const DRAG_SCALE = 1.08; 
+const DRAG_OPACITY = 0.95; 
+const PRESS_SCALE = 0.98; 
 
 function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecision }) {
   const priorityColor = PRIORITY_COLORS[card.priority] || '#64748b';
 
-  // Drag state
   const [isDragging, setIsDragging] = useState(false);
-  const [dragState, setDragState] = useState('idle'); // idle, pressing, dragging
+  const [dragState, setDragState] = useState('idle'); 
   const pan = useRef(new Animated.ValueXY()).current;
-  const scale = useRef(new Animated.Value(1)).current; // Scale animation for press feedback
+  const scale = useRef(new Animated.Value(1)).current; 
   const longPressTimer = useRef(null);
   const isDraggingRef = useRef(false);
   const pressStartTime = useRef(null);
   const hasMovedRef = useRef(false);
 
-  // Only show due date if within 3 days or overdue
   const dueDate = card.dueDate ? new Date(card.dueDate) : null;
   const now = new Date();
   const daysUntilDue = dueDate ? Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24)) : null;
   const showDueDate = dueDate && daysUntilDue !== null && daysUntilDue <= 3;
   const isOverdue = daysUntilDue !== null && daysUntilDue < 0 && card.status !== 'done';
 
-  // Show badge if has checklist, comments, or attachments
   const hasExtras = card.checklist.length > 0 || card.comments.length > 0 || card.attachments.length > 0;
 
-  // Determine available quick actions based on category
   const getQuickActions = () => {
     if (card.category === 'done') return [];
     if (card.category === 'todo') return ['in_progress', 'done'];
@@ -103,7 +79,6 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
 
   const quickActions = getQuickActions();
 
-  // Get previous/next category for swipe
   const getAdjacentCategories = () => {
     const categories = ['todo', 'in_progress', 'done'];
     const currentIndex = categories.indexOf(card.category);
@@ -117,24 +92,21 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
   const adjacentCategories = getAdjacentCategories();
   const adjacentCategoriesRef = useRef(adjacentCategories);
 
-  // Keep ref in sync
   React.useEffect(() => {
     adjacentCategoriesRef.current = adjacentCategories;
   }, [card.category]);
 
-  // PanResponder for drag gestures - iOS-optimized
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // More sensitive movement detection for better responsiveness
+        
         const hasSignificantMovement = Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3;
 
         if (hasSignificantMovement) {
           hasMovedRef.current = true;
         }
 
-        // Only activate pan responder if we're in drag mode
         return isDraggingRef.current && hasSignificantMovement;
       },
 
@@ -163,16 +135,14 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
 
         const adjacent = adjacentCategoriesRef.current;
 
-        // Determine if dragged far enough to change category
-        // Left swipe (previous category)
         if (gestureState.dx < -SWIPE_THRESHOLD && adjacent.previous) {
           handleDrop(adjacent.previous);
         }
-        // Right swipe (next category)
+        
         else if (gestureState.dx > SWIPE_THRESHOLD && adjacent.next) {
           handleDrop(adjacent.next);
         }
-        // Not enough distance - reset with spring animation
+        
         else {
           setIsDragging(false);
           isDraggingRef.current = false;
@@ -191,22 +161,21 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
   ).current;
 
   const resetPosition = () => {
-    // iOS-like spring animation with natural physics
+    
     Animated.spring(pan, {
       toValue: { x: 0, y: 0 },
       useNativeDriver: false,
-      friction: 8, // Lower = more bouncy (default: 7)
-      tension: 50, // Higher = faster animation (default: 40)
+      friction: 8, 
+      tension: 50, 
     }).start();
   };
 
   const handleDrop = (targetCategory) => {
-    // Move card
+    
     if (onQuickAction) {
       onQuickAction(card.id, targetCategory);
     }
 
-    // Reset drag state and scale
     setIsDragging(false);
     isDraggingRef.current = false;
     setDragState('idle');
@@ -221,13 +190,11 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
     resetPosition();
   };
 
-  // Long press to enable drag - iOS-optimized with haptic feedback
   const handlePressIn = () => {
     pressStartTime.current = Date.now();
     hasMovedRef.current = false;
     setDragState('pressing');
 
-    // Animate scale down to show press feedback
     Animated.spring(scale, {
       toValue: PRESS_SCALE,
       useNativeDriver: true,
@@ -235,13 +202,11 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
       tension: 150,
     }).start();
 
-    // Optimized long-press duration for iOS feel
     longPressTimer.current = setTimeout(() => {
       setIsDragging(true);
       isDraggingRef.current = true;
       setDragState('dragging');
 
-      // Animate scale up to drag scale
       Animated.spring(scale, {
         toValue: DRAG_SCALE,
         useNativeDriver: true,
@@ -249,11 +214,10 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
         tension: 100,
       }).start();
 
-      // Haptic feedback when drag mode activates
       try {
-        Vibration.vibrate(10); // Short, subtle vibration
+        Vibration.vibrate(10); 
       } catch (error) {
-        // Silently fail if vibration not supported
+        
       }
     }, LONG_PRESS_DURATION);
   };
@@ -265,7 +229,6 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
       clearTimeout(longPressTimer.current);
     }
 
-    // Reset scale animation when press ends (if not dragging)
     if (!isDraggingRef.current) {
       Animated.spring(scale, {
         toValue: 1,
@@ -275,12 +238,11 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
       }).start();
     }
 
-    // If we started dragging but didn't move, treat as normal press
     if (!hasMovedRef.current && !isDraggingRef.current && pressDuration < LONG_PRESS_DURATION) {
       setDragState('idle');
-      // Allow normal press to work
+      
     } else if (isDraggingRef.current && !hasMovedRef.current) {
-      // Long press activated but no movement - cancel drag
+      
       setIsDragging(false);
       isDraggingRef.current = false;
       setDragState('idle');
@@ -290,7 +252,7 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
   };
 
   const handlePress = () => {
-    // Only trigger press if not dragging and didn't move
+    
     if (!isDragging && !hasMovedRef.current && onPress) {
       onPress();
     }
@@ -310,18 +272,16 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
     }
   };
 
-  // Card transform style with elevation while dragging - iOS-optimized
   const cardStyle = {
     transform: [
       { translateX: pan.x },
       { translateY: pan.y },
-      { scale: scale }, // Use animated scale value
+      { scale: scale }, 
     ],
     zIndex: isDragging ? 1000 : 1,
     opacity: isDragging ? DRAG_OPACITY : 1,
   };
 
-  // Background indicator opacity based on drag distance
   const leftOpacity = pan.x.interpolate({
     inputRange: [-200, -SWIPE_THRESHOLD, 0],
     outputRange: [1, 0.7, 0],
@@ -334,7 +294,6 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
     extrapolate: 'clamp',
   });
 
-  // Progress bar scale based on drag distance (using scaleX instead of width)
   const leftProgress = pan.x.interpolate({
     inputRange: [-SWIPE_THRESHOLD * 2, -SWIPE_THRESHOLD, 0],
     outputRange: [1, 1, 0],
@@ -349,10 +308,10 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
 
   return (
     <View style={styles.cardContainer}>
-      {/* Drag Background Indicators - only show while dragging */}
+      {}
       {isDragging && (
         <>
-          {/* Left indicator (previous category) */}
+          {}
           {adjacentCategories.previous && (
             <Animated.View
               style={[
@@ -374,7 +333,7 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
             </Animated.View>
           )}
 
-          {/* Right indicator (next category) */}
+          {}
           {adjacentCategories.next && (
             <Animated.View
               style={[
@@ -398,7 +357,7 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
         </>
       )}
 
-      {/* Animated Card */}
+      {}
       <Animated.View
         style={[cardStyle]}
         {...panResponder.panHandlers}
@@ -421,32 +380,32 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
           accessibilityHint="Tap to view details, long press to drag to another column"
           accessibilityState={{ disabled: isDragging, selected: card.isFavorite }}
         >
-          {/* Dragging Badge */}
+          {}
           {isDragging && (
             <View style={styles.dragBadge}>
               <Text style={styles.dragBadgeText}>⬅ Ziehen ➡</Text>
             </View>
           )}
 
-          {/* Top Row: Type Icon + Priority Badge */}
+          {}
           <View style={styles.cardHeader}>
             <Text style={styles.typeIcon}>{TYPE_ICONS[card.type]}</Text>
 
             <View style={styles.badges}>
-              {/* Priority Badge */}
+              {}
               <View style={[styles.priorityBadge, { backgroundColor: priorityColor }]} />
 
-              {/* Favorite Star */}
+              {}
               {card.isFavorite && <Text style={styles.favoriteStar}>⭐</Text>}
             </View>
           </View>
 
-          {/* Title - Main focus */}
+          {}
           <Text style={styles.cardTitle} numberOfLines={2}>
             {card.title}
           </Text>
 
-          {/* Bottom Row: Due Date (only if urgent) + Extras Indicator */}
+          {}
           {(showDueDate || hasExtras) && (
             <View style={styles.cardFooter}>
               {showDueDate && (
@@ -463,10 +422,10 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
             </View>
           )}
 
-          {/* Quick Actions Row - Hidden while dragging */}
+          {}
           {!isDragging && (quickActions.length > 0 || card.type === 'decision') && (
             <View style={styles.quickActions}>
-              {/* Decision Button for Decision Cards */}
+              {}
               {card.type === 'decision' && (
                 <TouchableOpacity
                   style={styles.decisionButton}
@@ -476,7 +435,7 @@ function CardPreview({ card, onPress, categoryColor, onQuickAction, onMakeDecisi
                 </TouchableOpacity>
               )}
 
-              {/* Move Actions */}
+              {}
               {quickActions.map((action) => (
                 <TouchableOpacity
                   key={action}
@@ -700,8 +659,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// Export with React.memo for performance optimization
-// Prevents unnecessary re-renders when props haven't changed
 export default React.memo(CardPreview, (prevProps, nextProps) => {
   return (
     prevProps.card.id === nextProps.card.id &&
