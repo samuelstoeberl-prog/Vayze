@@ -551,7 +551,78 @@ exports.sendBroadcast = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * 5. SYNC STREAK TO FIRESTORE (HTTPS Callable)
+ * 5. DATA DELETION REQUEST (HTTPS Endpoint)
+ * Empfängt Löschanfragen von der Web-Seite außerhalb der App.
+ * Speichert die Anfrage in Firestore – wird vom Admin innerhalb von 30 Tagen bearbeitet.
+ */
+exports.requestDeletion = functions.https.onRequest(async (req, res) => {
+  // CORS – erlaubt Aufrufe von Firebase Hosting
+  res.set('Access-Control-Allow-Origin', 'https://vayze-918fc.web.app');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const { email, type } = req.body;
+
+  // Validierung
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    res.status(400).json({ error: 'Ungültige E-Mail-Adresse.' });
+    return;
+  }
+
+  const validTypes = ['account_and_data', 'data_only'];
+  if (!type || !validTypes.includes(type)) {
+    res.status(400).json({ error: 'Ungültiger Anfragetyp.' });
+    return;
+  }
+
+  try {
+    // Prüfen ob bereits eine offene Anfrage für diese E-Mail existiert
+    const existing = await db
+      .collection('deletionRequests')
+      .where('email', '==', email.toLowerCase())
+      .where('status', '==', 'pending')
+      .limit(1)
+      .get();
+
+    if (!existing.empty) {
+      // Anfrage existiert bereits – trotzdem Erfolg zurückgeben (kein Leak)
+      res.status(200).json({ success: true });
+      return;
+    }
+
+    // Anfrage speichern
+    const processBy = new Date();
+    processBy.setDate(processBy.getDate() + 30);
+
+    await db.collection('deletionRequests').add({
+      email: email.toLowerCase(),
+      type,                  // 'account_and_data' | 'data_only'
+      status: 'pending',
+      requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+      processBy: processBy.toISOString(),
+    });
+
+    console.log(`✅ Deletion request stored: ${type} for ${email}`);
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error storing deletion request:', error);
+    res.status(500).json({ error: 'Serverfehler. Bitte versuche es später erneut.' });
+  }
+});
+
+/**
+ * 6. SYNC STREAK TO FIRESTORE (HTTPS Callable)
  * Allows app to manually sync streak when needed
  */
 exports.syncStreak = functions.https.onCall(async (data, context) => {
